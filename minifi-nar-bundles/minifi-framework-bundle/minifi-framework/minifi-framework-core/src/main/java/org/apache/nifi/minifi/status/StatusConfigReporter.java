@@ -25,6 +25,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.commons.status.connection.ConnectionStatusBean;
 import org.apache.nifi.minifi.commons.status.controllerservice.ControllerServiceStatus;
@@ -73,7 +74,7 @@ public final class StatusConfigReporter {
 
         String[] itemsToReport = statusRequest.split(";");
 
-        ProcessGroupStatus rootGroupStatus = flowController.getControllerStatus();
+        final ProcessGroupStatus rootGroupStatus = flowController.getEventAccess().getControllerStatus();
 
         Map<String, ProcessorStatus> processorStatusMap = null;
         Map<String, ConnectionStatus> connectionStatusMap = null;
@@ -137,7 +138,7 @@ public final class StatusConfigReporter {
 
     private static void handleControllerServices(RequestItem requestItem, FlowController flowController, List<ControllerServiceStatus> controllerServiceStatusList, Logger logger) {
 
-        Collection<ControllerServiceNode> controllerServiceNodeSet = flowController.getAllControllerServices();
+        Collection<ControllerServiceNode> controllerServiceNodeSet = flowController.getFlowManager().getAllControllerServices();
 
         if (!controllerServiceNodeSet.isEmpty()) {
             for (ControllerServiceNode controllerServiceNode : controllerServiceNodeSet) {
@@ -152,11 +153,11 @@ public final class StatusConfigReporter {
             processorStatusMap = transformStatusCollection(rootGroupStatus.getProcessorStatus());
         }
 
-        String rootGroupId = flowController.getRootGroupId();
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         if (requestItem.identifier.equalsIgnoreCase("all")) {
             if (!processorStatusMap.isEmpty()) {
                 for (ProcessorStatus processorStatus : new HashSet<>(processorStatusMap.values())) {
-                    Collection<ValidationResult> validationResults = flowController.getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
+                    Collection<ValidationResult> validationResults =rootGroup.getProcessor(processorStatus.getId()).getValidationErrors();
                     processorStatusBeanList.add(parseProcessorStatusRequest(processorStatus, requestItem.options, flowController, validationResults));
                 }
             }
@@ -164,7 +165,7 @@ public final class StatusConfigReporter {
 
             if (processorStatusMap.containsKey(requestItem.identifier)) {
                 ProcessorStatus processorStatus = processorStatusMap.get(requestItem.identifier);
-                Collection<ValidationResult> validationResults = flowController.getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
+                Collection<ValidationResult> validationResults = rootGroup.getProcessor(processorStatus.getId()).getValidationErrors();
                 processorStatusBeanList.add(parseProcessorStatusRequest(processorStatus, requestItem.options, flowController, validationResults));
             } else {
                 logger.warn("Status for processor with key " + requestItem.identifier + " was requested but one does not exist");

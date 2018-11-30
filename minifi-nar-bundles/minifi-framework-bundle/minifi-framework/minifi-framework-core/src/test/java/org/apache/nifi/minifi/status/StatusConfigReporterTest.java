@@ -23,6 +23,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ConnectionStatus;
@@ -41,6 +42,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.UserAwareEventAccess;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -71,22 +73,33 @@ import static org.mockito.Mockito.when;
 
 public class StatusConfigReporterTest {
     private FlowController mockFlowController;
+    private FlowManager mockFlowManager;
+    private UserAwareEventAccess mockEventAccess;
     private ProcessGroupStatus rootGroupStatus;
     private BulletinRepository bulletinRepo;
     private ProcessGroup processGroup;
 
+    private static final String TEST_ROOT_GROUP_ID = "root";
+
     @Before
     public void setup() {
         mockFlowController = mock(FlowController.class);
+        mockFlowManager = mock(FlowManager.class);
+        mockEventAccess = mock(UserAwareEventAccess.class);
         rootGroupStatus = mock(ProcessGroupStatus.class);
         bulletinRepo = mock(BulletinRepository.class);
         processGroup = mock(ProcessGroup.class);
 
-        when(mockFlowController.getRootGroupId()).thenReturn("root");
-        when(mockFlowController.getGroupStatus("root")).thenReturn(rootGroupStatus);
-        when(mockFlowController.getControllerStatus()).thenReturn(rootGroupStatus);
+        when(mockFlowController.getFlowManager()).thenReturn(mockFlowManager);
+        when(mockFlowController.getEventAccess()).thenReturn(mockEventAccess);
+
+        when(mockFlowManager.getRootGroupId()).thenReturn(TEST_ROOT_GROUP_ID);
+        when(mockFlowManager.getGroup(TEST_ROOT_GROUP_ID)).thenReturn(processGroup);
+        when(mockFlowManager.getRootGroup()).thenReturn(processGroup);
+
+        when(mockEventAccess.getGroupStatus(TEST_ROOT_GROUP_ID)).thenReturn(rootGroupStatus);
+        when(mockEventAccess.getControllerStatus()).thenReturn(rootGroupStatus);
         when(mockFlowController.getBulletinRepository()).thenReturn(bulletinRepo);
-        when(mockFlowController.getGroup(mockFlowController.getRootGroupId())).thenReturn(processGroup);
     }
 
     @Test
@@ -601,7 +614,7 @@ public class StatusConfigReporterTest {
         }
         HashSet<ControllerServiceNode> controllerServiceNodes = new HashSet<>();
         controllerServiceNodes.add(controllerServiceNode);
-        when(mockFlowController.getAllControllerServices()).thenReturn(controllerServiceNodes);
+        when(mockFlowManager.getAllControllerServices()).thenReturn(controllerServiceNodes);
     }
 
     private void populateInstance(boolean addBulletins) {
@@ -715,7 +728,7 @@ public class StatusConfigReporterTest {
     }
 
     private void populateRemoteProcessGroup(boolean addBulletins, boolean addAuthIssues) {
-        when(mockFlowController.getGroup(mockFlowController.getRootGroupId())).thenReturn(processGroup);
+        when(mockFlowManager.getGroup(TEST_ROOT_GROUP_ID)).thenReturn(processGroup);
 
         RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
         when(processGroup.getRemoteProcessGroup(any())).thenReturn(remoteProcessGroup);
