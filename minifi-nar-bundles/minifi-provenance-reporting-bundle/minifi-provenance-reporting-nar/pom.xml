@@ -42,17 +42,17 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-service-api</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
@@ -63,7 +63,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.8.0</version>
         </dependency>
 
         <!-- Provided dependencies -->
