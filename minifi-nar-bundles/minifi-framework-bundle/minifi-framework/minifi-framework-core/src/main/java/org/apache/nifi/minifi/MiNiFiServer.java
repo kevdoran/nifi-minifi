@@ -35,12 +35,10 @@ import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
 import org.apache.nifi.minifi.status.StatusRequestException;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
-import org.apache.nifi.spring.ExtensionManagerFactoryBean;
 import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -54,7 +52,6 @@ public class MiNiFiServer {
     private final NiFiProperties props;
     private FlowService flowService;
     private FlowController flowController;
-    private ExtensionManager extensionManager;
 
     private static final String DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!";
 
@@ -70,9 +67,9 @@ public class MiNiFiServer {
         try {
             logger.info("Loading Flow...");
 
-            final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
-            final AuditService auditService = new StandardAuditService();
-            final Authorizer authorizer = new Authorizer() {
+            FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
+            AuditService auditService = new StandardAuditService();
+            Authorizer authorizer = new Authorizer() {
                 @Override
                 public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
                     return AuthorizationResult.approved();
@@ -98,11 +95,11 @@ public class MiNiFiServer {
             final String sensitivePropProviderVal = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER);
             final String sensitivePropValueNifiPropVar = props.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
 
-            final StringEncryptor encryptor = StringEncryptor.createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
-            final VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
-            final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(sensitivePropAlgorithmVal, sensitivePropProviderVal, sensitivePropValueNifiPropVar);
+            VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
+            BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
-            final FlowController flowController = FlowController.createStandaloneInstance(
+            FlowController flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     props,
                     authorizer,
@@ -110,8 +107,7 @@ public class MiNiFiServer {
                     encryptor,
                     bulletinRepository,
                     variableRegistry,
-                    new StandardFlowRegistryClient(),
-                    extensionManager
+                    new StandardFlowRegistryClient()
                     );
 
             flowService = StandardFlowService.createStandaloneInstance(
@@ -125,7 +121,7 @@ public class MiNiFiServer {
             flowService.start();
             flowService.load(null);
             flowController.onFlowInitialized(true);
-            flowController.getFlowManager().getRootGroup().startProcessing();
+            flowController.getGroup(flowController.getRootGroupId()).startProcessing();
 
             this.flowController = flowController;
 

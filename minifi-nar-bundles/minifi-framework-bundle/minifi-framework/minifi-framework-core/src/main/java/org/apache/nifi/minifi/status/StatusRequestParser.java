@@ -118,10 +118,10 @@ public final class StatusRequestParser {
         RemoteProcessGroupStatusBean remoteProcessGroupStatusBean = new RemoteProcessGroupStatusBean();
         remoteProcessGroupStatusBean.setName(inputRemoteProcessGroupStatus.getName());
 
-        final String rootGroupId = flowController.getFlowManager().getRootGroupId();
-        final String[] statusSplits = statusTypes.split(",");
+        String rootGroupId = flowController.getRootGroupId();
+        String[] statusSplits = statusTypes.split(",");
 
-        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
+        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
                 new BulletinQuery.Builder()
                         .sourceIdMatches(inputRemoteProcessGroupStatus.getId())
                         .build());
@@ -163,7 +163,7 @@ public final class StatusRequestParser {
 
     private static List<PortStatus> getPortStatusList(RemoteProcessGroupStatus inputRemoteProcessGroupStatus, FlowController flowController, String rootGroupId,
                                                       Function<RemoteProcessGroup, Set<RemoteGroupPort>> portFunction) {
-        return portFunction.apply(flowController.getFlowManager().getRootGroup().getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
+        return portFunction.apply(flowController.getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
             PortStatus portStatus = new PortStatus();
 
             portStatus.setName(r.getName());
@@ -350,6 +350,7 @@ public final class StatusRequestParser {
     static InstanceStatus parseInstanceRequest(String statusTypes, FlowController flowController, ProcessGroupStatus rootGroupStatus) {
         InstanceStatus instanceStatus = new InstanceStatus();
 
+        flowController.getAllControllerServices();
         List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletinsForController();
         String[] statusSplits = statusTypes.split(",");
 
