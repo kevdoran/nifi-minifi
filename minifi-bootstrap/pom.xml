@@ -82,6 +82,20 @@ limitations under the License.
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
         </dependency>
+
+
+        <dependency>
+            <groupId>com.cloudera.cem.efm</groupId>
+            <artifactId>efm-web-client</artifactId>
+            <version>${com.cloudera.cem.efm.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.cloudera.cem.efm</groupId>
+            <artifactId>efm-c2-protocol-api</artifactId>
+            <version>${com.cloudera.cem.efm.version}</version>
+        </dependency>
+
+
     </dependencies>
 
 
