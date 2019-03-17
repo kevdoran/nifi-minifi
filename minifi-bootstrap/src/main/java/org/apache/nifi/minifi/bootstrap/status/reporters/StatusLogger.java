@@ -47,7 +47,7 @@ public class StatusLogger extends PeriodicStatusReporter {
     static final String ENCOUNTERED_IO_EXCEPTION = "Encountered an IO Exception while attempting to query the flow status.";
 
     @Override
-    public void initialize(Properties properties,  QueryableStatusAggregator queryableStatusAggregator) {
+    public void initialize(Properties properties, QueryableStatusAggregator queryableStatusAggregator) {
         this.queryableStatusAggregator = queryableStatusAggregator;
 
         String periodString = properties.getProperty(REPORT_PERIOD_KEY);
@@ -72,7 +72,7 @@ public class StatusLogger extends PeriodicStatusReporter {
             throw new IllegalStateException("Value set for " + LOGGING_LEVEL_KEY + " is not a valid log level.");
         }
 
-        if (LogLevel.FATAL.equals(logLevel)){
+        if (LogLevel.FATAL.equals(logLevel)) {
             throw new IllegalStateException("Cannot log status at the FATAL level. Please configure " + LOGGING_LEVEL_KEY + " to another value.");
         }
 
@@ -82,6 +82,11 @@ public class StatusLogger extends PeriodicStatusReporter {
         }
 
         reportRunner = new ReportStatusRunner();
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return true;
     }
 
 

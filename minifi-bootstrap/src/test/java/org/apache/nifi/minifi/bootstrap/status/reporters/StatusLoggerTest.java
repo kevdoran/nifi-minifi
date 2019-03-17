@@ -103,7 +103,7 @@ public class StatusLoggerTest {
         statusLogger.initialize(getProperties(LogLevel.TRACE), queryableStatusAggregator);
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.timeout(300).atLeastOnce()).trace(MOCK_STATUS, (Throwable) null);
     }
 
     @Test

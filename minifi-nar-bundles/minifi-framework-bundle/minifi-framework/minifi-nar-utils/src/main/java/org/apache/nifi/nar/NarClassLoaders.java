@@ -19,6 +19,8 @@ package org.apache.nifi.nar;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.minifi.nar.NarBundleUtil;
+import org.apache.nifi.minifi.nar.NarClassLoader;
 import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

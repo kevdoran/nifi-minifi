@@ -41,6 +41,7 @@ limitations under the License.
         <module>minifi-docker</module>
         <module>minifi-c2</module>
         <module>minifi-integration-tests</module>
+        <module>minifi-c2-agent-client</module>
     </modules>
 
     <url>https://nifi.apache.org/minifi</url>
@@ -100,13 +101,23 @@ limitations under the License.
         <org.slf4j.version>1.7.25</org.slf4j.version>
         <org.apache.nifi.version>1.8.0</org.apache.nifi.version>
         <logback.version>1.2.3</logback.version>
+        <guava.version>18.0</guava.version>
+        <flyway.version>4.2.0</flyway.version>
+        <jax.rs.api.version>2.1</jax.rs.api.version>
+        <jackson.version>2.9.7</jackson.version>
         <jetty.version>9.4.19.v20190610</jetty.version>
         <jersey.version>2.29</jersey.version>
+        <spring.boot.version>2.0.0.RELEASE</spring.boot.version>
+        <spring.version>5.0.4.RELEASE</spring.version>
+        <spring.security.version>5.0.4.RELEASE</spring.security.version>
+        <spring.security.ldap.version>5.0.3.RELEASE</spring.security.ldap.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <spring.version>4.3.25.RELEASE</spring.version>
         <spring.security.version>4.2.13.RELEASE</spring.security.version>
         <system.rules.version>1.16.1</system.rules.version>
         <aws.sdk.version>1.11.172</aws.sdk.version>
+        <nifi.registry.version>0.3.0</nifi.registry.version>
+        <io.swagger.version>1.5.18</io.swagger.version>
         <com.cloudera.cem.efm.version>1.0.0-SNAPSHOT</com.cloudera.cem.efm.version>
     </properties>
 
@@ -353,72 +364,72 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-api</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ui-extension</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-socket-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-data-provenance-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-toolkit-tls</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -426,7 +437,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-docs</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -434,147 +445,147 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty-bundle</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ldap-iaa-providers-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kerberos-iaa-providers-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-utils</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-write-ahead-log</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-administration</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-persistent-provenance-repository</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-task</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
 
             <!-- Manage provided dependencies in lib -->
@@ -609,7 +620,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-client-dto</artifactId>
-                <version>1.8.0</version>
+                <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

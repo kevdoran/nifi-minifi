@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
@@ -127,6 +128,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
     public static final String FLOW_STATUS_REPORT_CMD = "FLOW_STATUS_REPORT";
+    public static final String GENERATE_HEARTBEAT_CMD = "GENERATE_HEARTBEAT";
 
     private static final int UNINITIALIZED_CC_PORT = -1;
 
@@ -260,7 +262,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                 runMiNiFi.env();
                 break;
             case "flowstatus":
-                if(args.length == 2) {
+                if (args.length == 2) {
                     System.out.println(runMiNiFi.statusReport(args[1]));
                 } else {
                     System.out.println("The 'flowStatus' command requires an input query. See the System Admin Guide 'FlowStatus Script Query' section for complete details.");
@@ -325,7 +327,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         return getBootstrapFile(logger, MINIFI_PID_DIR_PROP, DEFAULT_PID_DIR, MINIFI_LOCK_FILE_NAME);
     }
 
-    File getStatusFile() throws IOException{
+    File getStatusFile() throws IOException {
         return getStatusFile(defaultLogger);
     }
 
@@ -391,8 +393,8 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             Files.setPosixFilePermissions(statusFile.toPath(), perms);
         } catch (final Exception e) {
             logger.warn("Failed to set permissions so that only the owner can read status file {}; "
-                + "this may allows others to have access to the key needed to communicate with MiNiFi. "
-                + "Permissions should be changed so that only the owner can read this file", statusFile);
+                    + "this may allows others to have access to the key needed to communicate with MiNiFi. "
+                    + "Permissions should be changed so that only the owner can read this file", statusFile);
         }
 
         try (final FileOutputStream fos = new FileOutputStream(statusFile)) {
@@ -406,7 +408,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     private synchronized void writePidFile(final String pid, final Logger logger) throws IOException {
         final File pidFile = getPidFile(logger);
         if (pidFile.exists() && !pidFile.delete()) {
-           logger.warn("Failed to delete {}", pidFile);
+            logger.warn("Failed to delete {}", pidFile);
         }
 
         if (!pidFile.createNewFile()) {
@@ -566,7 +568,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         final Status status = getStatus(logger);
         if (status.isRespondingToPing()) {
             logger.info("Apache MiNiFi is currently running, listening to Bootstrap on port {}, PID={}",
-                new Object[]{status.getPort(), status.getPid() == null ? "unknown" : status.getPid()});
+                    new Object[]{status.getPort(), status.getPid() == null ? "unknown" : status.getPid()});
             return 0;
         }
 
@@ -610,6 +612,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         return getFlowStatusReport(statusRequest, status.getPort(), props.getProperty("secret.key"), logger);
     }
+
 
     public void env() {
         final Logger logger = cmdLogger;
@@ -801,7 +804,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         } catch (final IOException ioe) {
             if (pid == null) {
                 logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the MiNiFi process, so unable to kill process; "
-                    + "the process should be killed manually.", new Object[]{port, ioe.toString()});
+                        + "the process should be killed manually.", new Object[]{port, ioe.toString()});
             } else {
                 logger.error("Failed to send shutdown command to port {} due to {}. Will kill the MiNiFi Process with PID {}.", port, ioe.toString(), pid);
                 killProcessTree(pid, logger);
@@ -909,7 +912,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         } catch (final IOException ioe) {
             if (pid == null) {
                 logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the MiNiFi process, so unable to kill process; "
-                    + "the process should be killed manually.", new Object[]{port, ioe.toString()});
+                        + "the process should be killed manually.", new Object[]{port, ioe.toString()});
             } else {
                 logger.error("Failed to send shutdown command to port {} due to {}. Will kill the MiNiFi Process with PID {}.", new Object[]{port, ioe.toString(), pid});
                 killProcessTree(pid, logger);
@@ -994,12 +997,12 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
         } catch (final NumberFormatException nfe) {
             throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
         }
 
         if (gracefulShutdownSeconds < 0) {
             throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
         }
         return gracefulShutdownSeconds;
     }
@@ -1119,7 +1122,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             if (javaHome != null) {
                 String fileExtension = isWindows() ? ".exe" : "";
                 File javaFile = new File(javaHome + File.separatorChar + "bin"
-                    + File.separatorChar + "java" + fileExtension);
+                        + File.separatorChar + "java" + fileExtension);
                 if (javaFile.exists() && javaFile.canExecute()) {
                     javaCmd = javaFile.getAbsolutePath();
                 }
@@ -1138,7 +1141,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         cmd.add("-Dnifi.properties.file.path=" + minifiPropsFilename);
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=MiNiFi");
-        cmd.add("-Dorg.apache.nifi.minifi.bootstrap.config.log.dir="+minifiLogDir);
+        cmd.add("-Dorg.apache.nifi.minifi.bootstrap.config.log.dir=" + minifiLogDir);
         cmd.add("org.apache.nifi.minifi.MiNiFi");
 
         builder.command(cmd);
@@ -1187,6 +1190,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         // Instantiate configuration listener and configured ingestors
         this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
         this.periodicStatusReporters = initializePeriodicNotifiers();
+        defaultLogger.info("Starting period notifiers");
         startPeriodicNotifiers();
         try {
             this.changeCoordinator = initializeNotifier(this.changeListener);
@@ -1322,14 +1326,52 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         }
     }
 
+    @Override
+    public String getBundles() throws IOException {
+        final Logger logger = cmdLogger;
+        final Status status = getStatus(logger);
+        final Properties props = loadProperties(logger);
+
+        final int port = status.getPort();
+        final String secretKey = props.getProperty("secret.key");
+
+        logger.trace("Generating heartbeat to {}", port);
+
+        try (final Socket socket = new Socket("localhost", port)) {
+            final OutputStream out = socket.getOutputStream();
+            final String commandWithArgs = GENERATE_HEARTBEAT_CMD + " " + secretKey + " \n";
+            out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
+            logger.debug("Sending command to MiNiFi: {}", commandWithArgs);
+            out.flush();
+
+            logger.trace("Sent {} to MiNiFi", GENERATE_HEARTBEAT_CMD);
+            socket.setSoTimeout(5000);
+            final InputStream in = socket.getInputStream();
+
+            ObjectInputStream ois = new ObjectInputStream(in);
+            logger.trace("{} response received", GENERATE_HEARTBEAT_CMD);
+            Object o = ois.readObject();
+            ois.close();
+            out.close();
+            return (String) o;
+        } catch (EOFException | ClassNotFoundException | SocketTimeoutException e) {
+            throw new IllegalStateException("Failed to get the component manifest from the MiNiFi process. Potentially due to the process currently being down (restarting or otherwise).", e);
+        }
+    }
+
+    @Override
+    public ConfigurationChangeNotifier getConfigChangeNotifier() {
+        return this.changeCoordinator;
+    }
+
     public FlowStatusReport getFlowStatusReport(String statusRequest, final int port, final String secretKey, final Logger logger) throws IOException {
         logger.debug("Pinging {}", port);
 
         try (final Socket socket = new Socket("localhost", port)) {
             final OutputStream out = socket.getOutputStream();
-            final String commandWithArgs = FLOW_STATUS_REPORT_CMD + " " + secretKey +" " + statusRequest + "\n";
+            final String commandWithArgs = FLOW_STATUS_REPORT_CMD + " " + secretKey + " " + statusRequest + "\n";
             out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
-            logger.debug("Sending command to MiNiFi: {}",commandWithArgs);
+            logger.debug("Sending command to MiNiFi: {}", commandWithArgs);
             out.flush();
 
             logger.debug("Sent FLOW_STATUS_REPORT_CMD to MiNiFi");
@@ -1560,16 +1602,21 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         final Properties bootstrapProperties = getBootstrapProperties();
 
-        final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
-        if (reportersCsv != null && !reportersCsv.isEmpty()) {
-            for (String reporterClassname : Arrays.asList(reportersCsv.split(","))) {
-                try {
-                    Class<?> reporterClass = Class.forName(reporterClassname);
-                    PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
-                    reporter.initialize(bootstrapProperties, this);
-                    statusReporters.add(reporter);
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-                    throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
+        if (new C2Properties(bootstrapProperties).isEnabled()) {
+            final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
+            if (reportersCsv != null && !reportersCsv.isEmpty()) {
+                for (String reporterClassname : Arrays.asList(reportersCsv.split(","))) {
+                    try {
+                        System.out.println("Initializing periodic notifier: " + reporterClassname);
+                        Class<?> reporterClass = Class.forName(reporterClassname);
+                        PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
+                        reporter.initialize(bootstrapProperties, this);
+                        System.out.println("initialized " + reporterClassname);
+                        statusReporters.add(reporter);
+                    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                        System.err.println("Could not initialize reporter " + reporterClassname);
+                        throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
+                    }
                 }
             }
         }
@@ -1577,7 +1624,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     }
 
     private void startPeriodicNotifiers() throws IOException {
-        for (PeriodicStatusReporter periodicStatusReporter: this.periodicStatusReporters) {
+        for (PeriodicStatusReporter periodicStatusReporter : this.periodicStatusReporters) {
             periodicStatusReporter.start();
         }
     }
@@ -1659,7 +1706,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                         throw e;
                     }
                 }
-            } catch (ConfigurationChangeException e){
+            } catch (ConfigurationChangeException e) {
                 logger.error("Unable to carry out reloading of configuration on receipt of notification event", e);
                 throw e;
             } catch (IOException ioe) {
@@ -1668,7 +1715,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             } finally {
                 try {
                     if (configInputStream != null) {
-                        configInputStream.close() ;
+                        configInputStream.close();
                     }
                 } catch (IOException e) {
                     // Quietly close
@@ -1716,7 +1763,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             );
 
             return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
-        } catch (ConfigurationChangeException e){
+        } catch (ConfigurationChangeException e) {
             throw e;
         } catch (Exception e) {
             throw new IOException("Unable to successfully transform the provided configuration", e);

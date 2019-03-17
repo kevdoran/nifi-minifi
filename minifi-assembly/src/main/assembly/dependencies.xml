@@ -65,6 +65,14 @@
                 <include>minifi-utils</include>
                 <include>nifi-utils</include>
                 <include>commons-io</include>
+                <include>commons-lang3</include>
+                <include>nifi-api</include>
+                <include>nifi-bootstrap</include>
+                <include>slf4j-api</include>
+                <include>logback-classic</include>
+                <include>nifi-api</include>
+                <include>jackson-annotations</include>
+                <include>c2-protocol-api</include>
             </includes>
         </dependencySet>
 

@@ -18,12 +18,16 @@
 package org.apache.nifi.minifi.bootstrap.status;
 
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public abstract class PeriodicStatusReporter {
+
+    private static Logger logger = LoggerFactory.getLogger(PeriodicStatusReporter.class);
 
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
 
@@ -39,16 +43,25 @@ public abstract class PeriodicStatusReporter {
      */
     public abstract void initialize(Properties properties, QueryableStatusAggregator queryableStatusAggregator);
 
+    public abstract boolean isInitialized();
+
     /**
      * Begins the associated reporting service provided by the given implementation.  In most implementations, no action will occur until this method is invoked. The implementing class must have set
      * 'reportRunner' prior to this method being called.
-     *
      */
     public void start() {
-        if (reportRunner == null){
+        logger.info("Report runner null? = {}, Initialized? = {}", this.reportRunner == null);
+        if (reportRunner == null) {
+            logger.error("Report runner was null");
             throw new IllegalStateException("Programmatic error, the reportRunner is still NULL when 'start' was called.");
         }
-        scheduledExecutorService.scheduleAtFixedRate(reportRunner, period, period, TimeUnit.MILLISECONDS);
+        logger.info("Starting executor service");
+        try {
+            scheduledExecutorService.scheduleAtFixedRate(reportRunner, 0, 1000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            logger.error("Could not start status reporter", e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**

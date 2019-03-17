@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.minifi;
 
+import com.cloudera.cem.efm.model.C2Heartbeat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.minifi.c2.agent.client.Payload;
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.minifi.status.StatusRequestException;
+import org.apache.nifi.stream.io.LimitingInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -42,12 +52,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.minifi.status.StatusRequestException;
-import org.apache.nifi.util.LimitingInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BootstrapListener {
 
@@ -216,6 +220,11 @@ public class BootstrapListener {
                                         String flowStatusRequestString = request.getArgs()[0];
                                         writeStatusReport(flowStatusRequestString, socket.getOutputStream());
                                         break;
+                                    case GENERATE_HEARTBEAT:
+                                        logger.trace("Received GENERATE_HEARTBEAT request from Bootstrap");
+                                        final C2Heartbeat c2Heartbeat = minifi.generateHeartbeat();
+                                        provideHeartbeat(socket.getOutputStream(), c2Heartbeat);
+                                        break;
                                 }
                             } catch (final Throwable t) {
                                 logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
@@ -234,6 +243,21 @@ public class BootstrapListener {
             }
         }
     }
+
+    private void provideHeartbeat(final OutputStream out, C2Heartbeat c2Heartbeat) throws IOException {
+        logger.trace("Generating payload...");
+        final ObjectOutputStream oos = new ObjectOutputStream(out);
+        final ObjectMapper jacksonObjectMapper = new ObjectMapper();
+        jacksonObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        final Payload payload = new Payload(c2Heartbeat);
+        final String heartbeatString = jacksonObjectMapper.writeValueAsString(payload);
+
+        logger.trace("Payload: {}", heartbeatString);
+        oos.writeObject(heartbeatString);
+        oos.close();
+    }
+
 
     private void writeStatusReport(String flowStatusRequestString, final OutputStream out) throws IOException, StatusRequestException {
         ObjectOutputStream oos = new ObjectOutputStream(out);
@@ -406,7 +430,8 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             PING,
-            FLOW_STATUS_REPORT;
+            FLOW_STATUS_REPORT,
+            GENERATE_HEARTBEAT;
         }
 
         private final RequestType requestType;
@@ -426,4 +451,6 @@ public class BootstrapListener {
             return args;
         }
     }
+
+
 }

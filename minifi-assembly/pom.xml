@@ -101,6 +101,11 @@ limitations under the License.
             <scope>runtime</scope>
             <type>zip</type>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.9.0</version>
+        </dependency>
 
         <!-- MiNiFi -->
         <dependency>
@@ -151,6 +156,17 @@ limitations under the License.
             <artifactId>minifi-provenance-reporting-nar</artifactId>
             <type>nar</type>
             <version>0.6.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+            <version>2.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.cloudera.cem.efm</groupId>
+            <artifactId>efm-c2-protocol-api</artifactId>
+            <version>${com.cloudera.cem.efm.version}</version>
         </dependency>
 
         <!-- NiFi Assembly Dependencies-->
@@ -274,8 +290,8 @@ limitations under the License.
 
     <properties>
         <!--Bootstrap Properties -->
-        <minifi.jvm.heap.mb>256</minifi.jvm.heap.mb>
-        <minifi.jvm.permgen.mb>128</minifi.jvm.permgen.mb>
+        <minifi.jvm.heap.mb>512</minifi.jvm.heap.mb>
+        <minifi.jvm.permgen.mb>256</minifi.jvm.permgen.mb>
         <minifi.run.as />
 
         <!--Commons Daemon Properties-->

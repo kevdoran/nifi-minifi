@@ -14,7 +14,6 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-#
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
@@ -39,13 +38,13 @@ done
 
 # Compute the canonicalized name by finding the physical path
 # for the directory we're in and appending the target file.
-PHYS_DIR=`pwd -P`
+PHYS_DIR=$(pwd -P)
 
 SCRIPT_DIR=$PHYS_DIR
-SCRIPT_NAME=$(basename "$0")
 PROGNAME=$(basename "$0")
 
-. "$SCRIPT_DIR"/minifi-env.sh
+. "${SCRIPT_DIR}/minifi-env.sh"
+
 
 
 warn() {
@@ -81,6 +80,11 @@ detectOS() {
     if ${aix}; then
          export LDR_CNTRL=MAXDATA=0xB0000000@DSA
          echo ${LDR_CNTRL}
+    fi
+    # In addition to those, go around the linux space and query the widely
+    # adopted /etc/os-release to detect linux variants
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
     fi
 }
 
@@ -175,6 +179,8 @@ install() {
         SVC_NAME=$2
     fi
 
+    # since systemd seems to honour /etc/init.d we don't still create native systemd services
+    # yet...
     initd_dir='/etc/init.d'
     SVC_FILE="${initd_dir}/${SVC_NAME}"
 
@@ -223,28 +229,37 @@ SERVICEDESCRIPTOR
     # Provide the user execute access on the file
     chmod u+x ${SVC_FILE}
 
-    rm -f "/etc/rc2.d/S65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
-    rm -f "/etc/rc2.d/K65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
-    echo "Service ${SVC_NAME} installed"
+
+    # If SLES or OpenSuse...
+    if [ "${ID}" = "opensuse" ] || [ "${ID}" = "sles" ]; then
+        rm -f "/etc/rc.d/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/S65${SVC_NAME}"; exit 1; }
+        rm -f "/etc/rc.d/rc2.d/K65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/K65${SVC_NAME}"; exit 1; }
+        echo "Service ${SVC_NAME} installed"
+    # Anything other fallback to the old approach
+    else
+        rm -f "/etc/rc2.d/S65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
+        rm -f "/etc/rc2.d/K65${SVC_NAME}"
+        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
+        echo "Service ${SVC_NAME} installed"
+    fi
 }
 
 run() {
     BOOTSTRAP_CONF_DIR="${MINIFI_HOME}/conf"
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
-    MINIFI_LIBS="${MINIFI_HOME}/lib/*"
     BOOTSTRAP_LIBS="${MINIFI_HOME}/lib/bootstrap/*"
 
-    run_as=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
+    run_as_user=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
-    if [ "$run_as" = "$(whoami)" ]; then
-        unset run_as
+    if [ "${run_as_user}" = "$(whoami)" ]; then
+        unset run_as_user
     fi
 
-    sudo_cmd_prefix=""
     if $cygwin; then
-        if [ -n "${run_as}" ]; then
+        if [ -n "${run_as_user}" ]; then
             echo "The run.as option is not supported in a Cygwin environment. Exiting."
             exit 1
         fi;
@@ -255,51 +270,60 @@ run() {
         BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
         BOOTSTRAP_CONF_DIR=$(cygpath --path --windows "${BOOTSTRAP_CONF_DIR}")
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
-        MINIFI_LIBS=$(cygpath --path --windows "${MINIFI_LIBS}")
-        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS};${MINIFI_LIBS}"
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
             TOOLS_JAR=$(cygpath --path --windows "${TOOLS_JAR}")
-            BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH};${MINIFI_LIBS}"
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH}"
         fi
     else
-        if [ -n "${run_as}" ]; then
-            if id -u "${run_as}" >/dev/null 2>&1; then
-                sudo_cmd_prefix="sudo -u ${run_as}"
-            else
-                echo "The specified run.as user ${run_as} does not exist. Exiting."
+        if [ -n "${run_as_user}" ]; then
+            if ! id -u "${run_as_user}" >/dev/null 2>&1; then
+                echo "The specified run.as user ${run_as_user} does not exist. Exiting."
                 exit 1
             fi
         fi;
-        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR}:${BOOTSTRAP_LIBS}:${MINIFI_LIBS}"
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR}:${BOOTSTRAP_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
-            BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}:${MINIFI_LIBS}"
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}"
         fi
     fi
 
     echo
-    echo "Bootstrap Classpath: ${BOOTSTRAP_CLASSPATH}"
     echo "Java home: ${JAVA_HOME}"
     echo "MiNiFi home: ${MINIFI_HOME}"
     echo
     echo "Bootstrap Config File: ${BOOTSTRAP_CONF}"
     echo
 
+    # run 'start' in the background because the process will continue to run, monitoring NiFi.
+    # all other commands will terminate quickly so want to just wait for them
 
     #setup directory parameters
-    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.log.dir="\""${MINIFI_LOG_DIR}"\"""
-    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.pid.dir="\""${MINIFI_PID_DIR}"\"""
-    BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.file="\""${BOOTSTRAP_CONF}"\"""
+    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.log.dir='${MINIFI_LOG_DIR}'"
+    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.pid.dir='${MINIFI_PID_DIR}'"
+    BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.bootstrap.config.file='${BOOTSTRAP_CONF}'"
+
+    # uncomment to allow debugging of the bootstrap process
+    #BOOTSTRAP_DEBUG_PARAMS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    RUN_MINIFI_CMD="cd "\""${MINIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.minifi.bootstrap.RunMiNiFi"
+    run_minifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms256m -Xmx512m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.minifi.bootstrap.RunMiNiFi $@"
 
-    # run 'start' in the background because the process will continue to run, monitoring MiNiFi.
-    # all other commands will terminate quickly so want to just wait for them
+    if [ -n "${run_as_user}" ]; then
+      # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
+      run_minifi_cmd="sudo -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/minifi-env.sh' && ${run_minifi_cmd}\""
+    fi
+
+    if [ "$1" = "run" ]; then
+      # Use exec to handover PID to RunNiFi java process, instead of foking it as a child process
+      run_minifi_cmd="exec ${run_minifi_cmd}"
+    fi
+
     if [ "$1" = "start" ]; then
-        (eval $RUN_MINIFI_CMD $@ &)
+        ( eval "cd ${MINIFI_HOME} && ${run_minifi_cmd}" & )> /dev/null 1>&-
     else
-        (eval $RUN_MINIFI_CMD $@)
+        eval "cd ${MINIFI_HOME} && ${run_minifi_cmd}"
     fi
     EXIT_STATUS=$?
 
@@ -322,14 +346,12 @@ case "$1" in
         ;;
     start|stop|run|status|flowStatus|dump|env)
         main "$@"
-        exit $EXIT_STATUS
         ;;
     restart)
         init
         run "stop"
         run "start"
-        exit $EXIT_STATUS
-    ;;
+        ;;
     *)
         echo "Usage minifi {start|stop|run|restart|status|flowStatus|dump|install}"
         ;;

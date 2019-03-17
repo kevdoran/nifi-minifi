@@ -17,11 +17,18 @@
 
 package org.apache.nifi.minifi.bootstrap;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 
 import java.io.IOException;
+import java.util.Set;
 
-public interface QueryableStatusAggregator {
+public interface QueryableStatusAggregator extends ConfigurationFileHolder {
 
     FlowStatusReport statusReport(String statusRequest) throws IOException;
+
+    String getBundles() throws IOException;
+
+    ConfigurationChangeNotifier getConfigChangeNotifier();
 }
