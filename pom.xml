@@ -39,8 +39,6 @@ limitations under the License.
         <module>minifi-assembly</module>
         <module>minifi-toolkit</module>
         <module>minifi-docker</module>
-        <module>minifi-c2</module>
-        <module>minifi-integration-tests</module>
         <module>minifi-c2-agent-client</module>
     </modules>
 
@@ -1465,6 +1463,17 @@ limitations under the License.
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <!-- Disable inclusion of Apache C2 by default -->
+        <profile>
+            <id>apache-c2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>minifi-c2</module>
+                <module>minifi-integration-tests</module>
+            </modules>
         </profile>
     </profiles>
 </project>
