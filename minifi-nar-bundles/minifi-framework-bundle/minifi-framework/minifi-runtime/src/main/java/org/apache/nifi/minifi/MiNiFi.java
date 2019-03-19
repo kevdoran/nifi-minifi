@@ -422,17 +422,14 @@ public class MiNiFi {
                     }
                 }
                 final String macString = macSb.toString();
-                logger.info("Have interface with address {} and name {} with hashcode {}", macString, iface.getName(), macString.hashCode());
                 Enumeration<InetAddress> inetAddresses = iface.getInetAddresses();
                 while (inetAddresses.hasMoreElements()) {
                     InetAddress inetAddress = inetAddresses.nextElement();
                     String hostAddress = inetAddress.getHostAddress();
                     String hostName = inetAddress.getHostName();
                     byte[] address = inetAddress.getAddress();
-                    logger.info("Hash code is {}", HashCode.fromBytes(address));
                     String canonicalHostName = inetAddress.getCanonicalHostName();
 
-                    logger.warn("Have host with hostaddress={} hostname={} address={} canonicalhostname={}", hostAddress, hostName, address, canonicalHostName);
                     networkInfo.setDeviceId(iface.getName());
                     networkInfo.setHostname(hostName);
                     networkInfo.setIpAddress(hostAddress);

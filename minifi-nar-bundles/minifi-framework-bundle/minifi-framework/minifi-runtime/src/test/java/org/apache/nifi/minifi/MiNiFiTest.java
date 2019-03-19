@@ -48,7 +48,6 @@ public class MiNiFiTest {
                     String hostAddress = inetAddress.getHostAddress();
                     String hostName = inetAddress.getHostName();
                     byte[] address = inetAddress.getAddress();
-                    logger.info("Hash code is {}", address.hashCode());
                     String canonicalHostName = inetAddress.getCanonicalHostName();
 
                     logger.warn("Have host with hostaddress={} hostname={} address={} canonicalhostname={}", hostAddress, hostName, address, canonicalHostName);

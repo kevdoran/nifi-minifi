@@ -1355,7 +1355,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             out.close();
             return (String) o;
         } catch (EOFException | ClassNotFoundException | SocketTimeoutException e) {
-            throw new IllegalStateException("Failed to get the component manifest from the MiNiFi process. Potentially due to the process currently being down (restarting or otherwise).", e);
+            throw new IllegalStateException("Failed to get the component manifest from the MiNiFi process. Potentially due to the process currently being down (restarting or otherwise).");
         }
     }
 

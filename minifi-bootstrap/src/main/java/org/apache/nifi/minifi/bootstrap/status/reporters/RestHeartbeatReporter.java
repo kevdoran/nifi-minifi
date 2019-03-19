@@ -302,22 +302,24 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
         @Override
         public void run() {
             try {
-//            logger.error("****************************************************************************************************************************************************");
-//            logger.error("Performing heartbeat at " + new Date());
-//            logger.error("****************************************************************************************************************************************************");
                 final FlowUpdateInfo originalFlowUpdateInfo = updateInfo.get();
 
                 try {
-                    String heartbeatString = generateHeartbeat();
+                    String heartbeatString;
+                    try {
+                        heartbeatString = generateHeartbeat();
+                    } catch (IOException e) {
+                        logger.info("Instance is current restarting and cannot heartbeat.");
+                        return;
+                    }
 
                     // Update flow identifier
-
                     final Payload payload = objectMapper.readValue(heartbeatString, Payload.class);
 
                     FlowUpdateInfo flowUpdateInfo = updateInfo.get();
                     if (flowUpdateInfo != null) {
                         final String flowId = flowUpdateInfo.getFlowId();
-                        logger.error("Determined that current flow id is {}. Overwriting payload ", flowId);
+                        logger.trace("Determined that current flow id is {}.", flowId);
                         payload.getFlowInfo().setFlowId(flowId);
                         heartbeatString = objectMapper.writeValueAsString(payload);
                     }
@@ -329,11 +331,12 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                             .post(requestBody)
                             .url(c2Url);
 
+
                     try {
-                        Response heartbeatResponse = httpClientReference.get().newCall(requestBuilder.build()).execute();
+                        final Response heartbeatResponse = httpClientReference.get().newCall(requestBuilder.build()).execute();
                         int statusCode = heartbeatResponse.code();
                         final String responseBody = heartbeatResponse.body().string();
-                        logger.info("Received heartbeat response (Status={}) {}", statusCode, responseBody);
+                        logger.debug("Received heartbeat response (Status={}) {}", statusCode, responseBody);
                         ObjectMapper objMapper = new ObjectMapper();
                         JsonNode responseJsonNode = objMapper.readTree(responseBody);
 
@@ -347,7 +350,6 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                                 final String updateLocation = args.get("location").asText();
 
                                 final FlowUpdateInfo fui = new FlowUpdateInfo(updateLocation, opIdentifier);
-
                                 final FlowUpdateInfo currentFui = updateInfo.get();
                                 if (currentFui == null || !currentFui.getFlowId().equals(fui.getFlowId())) {
                                     logger.info("Will perform flow update from {} for command #{}.  Previous flow id was {} with new id {}", updateLocation, opIdentifier, currentFui == null ? "not set" : currentFui.getFlowId(), fui.getFlowId());
@@ -355,7 +357,7 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                                 } else {
                                     logger.info("Flow is current...");
                                 }
-
+                                updateInfo.set(fui);
                             }
                         }
                     } catch (IOException e) {
@@ -370,31 +372,33 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
 
                 // Attempt to pull config
                 if (updateInfo.get() == null) {
-                    logger.trace("Not performing flow update.");
+                    logger.debug("Not performing flow update.");
                     return;
                 }
 
                 if (originalFlowUpdateInfo != null) {
                     if (originalFlowUpdateInfo.getFlowId().equals(updateInfo.get().getFlowId())) {
-                        logger.info("Not performing flow update as flow has not changed");
+                        logger.debug("Not performing flow update as flow has not changed");
                         return;
                     }
                 }
 
                 final FlowUpdateInfo newFlowInfo = updateInfo.get();
-                logger.debug("Attempting to pull new config from {}", newFlowInfo.getFlowUpdateUrl());
-
+                logger.info("Attempting to pull new config from {}", newFlowInfo.getFlowUpdateUrl());
 
                 final Request.Builder requestBuilder = new Request.Builder()
                         .get()
-                        .url(updateInfo.get().getFlowUpdateUrl());
-
-
+                        .url(newFlowInfo.getFlowUpdateUrl());
                 final Request request = requestBuilder.build();
 
                 ResponseBody body = null;
-                try (Response response = httpClientReference.get().newCall(request).execute()) {
+                try (final Response response = httpClientReference.get().newCall(request).execute()) {
                     logger.debug("Response received: {}", response.toString());
+
+                    logger.info("Performing acknowledgement as we have received a response.");
+                    if (response.isSuccessful()) {
+                        acknowledgeRequest(newFlowInfo);
+                    }
 
                     int code = response.code();
 
@@ -451,12 +455,13 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                 }
 
                 //  Clear flowupdate after successful change
-//                if (updateInfo.compareAndSet(originalFlowUpdateInfo, null)) {
-//                    logger.info("Finished for flow at {}", originalFlowUpdateInfo.getFlowUpdateUrl());
-//                    logger.info("Value was nullified as there was no change");
-//                } else {
-//                    logger.info("Value was changed while performing update");
-//                }
+                if (updateInfo.compareAndSet(originalFlowUpdateInfo, null)) {
+                    logger.info("Finished for flow at {}", originalFlowUpdateInfo.getFlowUpdateUrl());
+                    logger.info("Value was nullified as there was no change");
+                } else {
+                    logger.info("Value was changed while performing update");
+                }
+
             } catch (Exception e) {
                 logger.error("Could not run the heartbeat reporter runnable for this execution.", e);
             }
@@ -465,7 +470,7 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
 
     private void acknowledgeRequest(FlowUpdateInfo flowUpdateInfo) {
         final String c2Url = properties.get().getProperty("nifi.c2.rest.url.ack");
-        logger.warn("Performing acknowledgement request to request to {} for flow {}", c2Url, flowUpdateInfo.getFlowId());
+        logger.warn("Performing acknowledgement request to {} for flow {}", c2Url, flowUpdateInfo.getFlowId());
         flowIdReference.set(flowUpdateInfo.getFlowId());
         final ObjectMapper jacksonObjectMapper = new ObjectMapper();
         jacksonObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -482,6 +487,7 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
             if (!heartbeatResponse.isSuccessful()) {
                 logger.warn("Acknowledgement was not successful.");
             }
+            logger.trace("Status on acknowledgement was {}", heartbeatResponse.code());
         } catch (Exception e) {
             logger.error("Could not transmit ack to c2 server", e);
         }
