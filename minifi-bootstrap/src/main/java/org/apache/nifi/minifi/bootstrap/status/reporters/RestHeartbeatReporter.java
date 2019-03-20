@@ -89,11 +89,11 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
         agentInformation.setIdentifier(c2Properties.getAgentIdentifier());
         this.c2ServerUrl = c2Properties.getRestUrl();
 
-        pollingPeriodMS.set(1000);
+        pollingPeriodMS.set(c2Properties.getAgentHeartbeatPeriod());
         if (pollingPeriodMS.get() < 1) {
             throw new IllegalArgumentException("Property, " + C2Properties.C2_AGENT_HEARTBEAT_PERIOD_KEY + ", for the polling period ms must be set with a positive integer.");
         }
-        this.setPeriod((int) pollingPeriodMS.get());
+        this.setPeriod(pollingPeriodMS.get());
 
 
         if (StringUtils.isBlank(c2ServerUrl)) {
@@ -106,18 +106,6 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
 
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(false);
-
-//        // check if the ssl path is set and add the factory if so
-//        if (properties.containsKey(KEYSTORE_LOCATION_KEY)) {
-//            try {
-//                setSslSocketFactory(okHttpClientBuilder, properties);
-//                connectionScheme = "https";
-//            } catch (Exception e) {
-//                throw new IllegalStateException(e);
-//            }
-//        } else {
-//            connectionScheme = "http";
-//        }
 
         httpClientReference.set(okHttpClientBuilder.build());
         reportRunner = new RestHeartbeatReporter.HeartbeatReporter();

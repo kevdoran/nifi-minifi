@@ -33,4 +33,27 @@ public class C2PropertiesTest {
 
         Assert.assertEquals(TEST_AGENT_CLASS, c2props.getAgentClass());
     }
+
+    @Test
+    public void testSetAgentHeartbeatPeriod() {
+        final String validPeriodString = "3000";
+
+        final Properties properties = new Properties();
+        properties.put(C2Properties.C2_AGENT_HEARTBEAT_PERIOD_KEY, validPeriodString);
+        c2props = new C2Properties(properties);
+
+        Assert.assertEquals(3000, c2props.getAgentHeartbeatPeriod());
+    }
+
+    @Test
+    public void testSetAgentInvalidHeartbeatPeriod() {
+        final String invalidPeriodString = "abc";
+
+        final Properties properties = new Properties();
+        properties.put(C2Properties.C2_AGENT_HEARTBEAT_PERIOD_KEY, invalidPeriodString);
+        c2props = new C2Properties(properties);
+
+        // An invalid entry should resort to using the default heartbeat period
+        Assert.assertEquals(C2Properties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD, c2props.getAgentHeartbeatPeriod());
+    }
 }

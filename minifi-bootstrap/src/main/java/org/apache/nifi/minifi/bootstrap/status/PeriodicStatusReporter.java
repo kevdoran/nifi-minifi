@@ -31,7 +31,7 @@ public abstract class PeriodicStatusReporter {
 
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
 
-    private volatile int period = -1;
+    private volatile long period = -1;
     private volatile int termination_wait = 5000;
 
     public volatile Runnable reportRunner;
@@ -76,11 +76,11 @@ public abstract class PeriodicStatusReporter {
         }
     }
 
-    public int getPeriod() {
+    public long getPeriod() {
         return period;
     }
 
-    public void setPeriod(int period) {
+    public void setPeriod(long period) {
         this.period = period;
     }
 

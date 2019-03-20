@@ -1,8 +1,14 @@
 package org.apache.nifi.minifi.bootstrap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public class C2Properties {
+
+    private static final Logger logger = LoggerFactory.getLogger(C2Properties.class);
 
     public static final String NIFI_PREFIX = "nifi.";
 
@@ -26,6 +32,10 @@ public class C2Properties {
     public static final String C2_METRICS_METRICS_TYPED_METRICS_CLASSES_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.metrics.typedmetrics.classes";
     public static final String C2_METRICS_METRICS_PROCESSOR_METRICS_NAME_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.metrics.processorMetrics.name";
     public static final String C2_METRICS_METRICS_PROCESSOR_METRICS_CLASSES_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.metrics.processorMetrics.classes";
+
+    // Defaults
+    // Heartbeat period of 1 second
+    public static final long C2_AGENT_DEFAULT_HEARTBEAT_PERIOD = TimeUnit.SECONDS.toMillis(1);
 
     private final Properties properties;
 
@@ -64,6 +74,16 @@ public class C2Properties {
 
     public String getAgentIdentifier() {
         return getProperty(C2_AGENT_IDENTIFIER_KEY);
+    }
+
+    public long getAgentHeartbeatPeriod() {
+        long heartbeatPeriod = C2_AGENT_DEFAULT_HEARTBEAT_PERIOD;
+        try {
+            heartbeatPeriod = Long.parseLong(getProperty(C2_AGENT_HEARTBEAT_PERIOD_KEY));
+        } catch (NumberFormatException nfe) {
+            logger.warn("Heartbeat period is required to be set and could not be parsed into a long representing milliseconds.  Defaulting to {}ms", C2_AGENT_DEFAULT_HEARTBEAT_PERIOD);
+        }
+        return heartbeatPeriod;
     }
 
     // REST based protocol
