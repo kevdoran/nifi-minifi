@@ -24,6 +24,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListene
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.file.FileUtils;
@@ -78,6 +79,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.STATUS_REPORTER_COMPONENTS_KEY;
@@ -1601,26 +1603,57 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         final Set<PeriodicStatusReporter> statusReporters = new HashSet<>();
 
         final Properties bootstrapProperties = getBootstrapProperties();
+        final C2Properties c2Properties = new C2Properties(bootstrapProperties);
 
-        if (new C2Properties(bootstrapProperties).isEnabled()) {
-            final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
-            if (reportersCsv != null && !reportersCsv.isEmpty()) {
-                for (String reporterClassname : Arrays.asList(reportersCsv.split(","))) {
-                    try {
-                        System.out.println("Initializing periodic notifier: " + reporterClassname);
-                        Class<?> reporterClass = Class.forName(reporterClassname);
-                        PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
-                        reporter.initialize(bootstrapProperties, this);
-                        System.out.println("initialized " + reporterClassname);
-                        statusReporters.add(reporter);
-                    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-                        System.err.println("Could not initialize reporter " + reporterClassname);
-                        throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
-                    }
-                }
+        final List<String> periodicNotifiers = new ArrayList<>();
+        final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
+
+        if (reportersCsv != null && !reportersCsv.isEmpty()) {
+            periodicNotifiers.addAll(Arrays.asList(reportersCsv.split(",")));
+        }
+
+        if (c2Properties.isEnabled()) {
+            validateC2Configuration(c2Properties);
+            periodicNotifiers.add("org.apache.nifi.minifi.bootstrap.status.reporters.RestHeartbeatReporter");
+        } else {
+            System.out.println("C2 was not enabled for this instance.");
+        }
+
+        for (String reporterClassname : periodicNotifiers) {
+            try {
+                System.out.println("Initializing periodic notifier: " + reporterClassname);
+                Class<?> reporterClass = Class.forName(reporterClassname);
+                PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
+                reporter.initialize(bootstrapProperties, this);
+                statusReporters.add(reporter);
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                System.err.println("Could not initialize reporter " + reporterClassname);
+                throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
             }
         }
+
         return statusReporters;
+    }
+
+    private void validateC2Configuration(C2Properties c2Properties) {
+        final Set<String> invalidProperties = new HashSet<>();
+
+        if (StringUtils.isBlank(c2Properties.getAgentClass())) {
+            invalidProperties.add(C2Properties.C2_AGENT_CLASS_KEY);
+        }
+        if (StringUtils.isBlank(c2Properties.getRestUrl())) {
+            invalidProperties.add(C2Properties.C2_REST_URL_KEY);
+        }
+        if (StringUtils.isBlank(c2Properties.getRestAckUrl())) {
+            invalidProperties.add(C2Properties.C2_REST_URL_ACK_KEY);
+        }
+
+        if (!invalidProperties.isEmpty()) {
+            final String configIssues = invalidProperties.stream().collect(Collectors.joining(", "));
+            throw new IllegalStateException(
+                    String.format("Cannot start agent as C2 is enabled but the following properties are not properly configured: %s", configIssues));
+        }
+
     }
 
     private void startPeriodicNotifiers() throws IOException {

@@ -326,7 +326,7 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                         final String responseBody = heartbeatResponse.body().string();
                         logger.debug("Received heartbeat response (Status={}) {}", statusCode, responseBody);
                         ObjectMapper objMapper = new ObjectMapper();
-                        JsonNode responseJsonNode = objMapper.readTree(responseBody);
+                        final JsonNode responseJsonNode = objMapper.readTree(responseBody);
 
                         final JsonNode requestedOperations = responseJsonNode.get("requestedOperations");
                         if (requestedOperations != null && requestedOperations.size() > 0) {

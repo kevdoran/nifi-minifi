@@ -35,6 +35,7 @@ import com.cloudera.cem.efm.model.extension.SchedulingDefaults;
 import com.cloudera.cem.efm.model.extension.SchedulingStrategy;
 import com.google.common.hash.HashCode;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -43,6 +44,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.minifi.c2.agent.client.UuidGenerator;
 import org.apache.nifi.minifi.nar.NarUnpacker;
 import org.apache.nifi.minifi.nar.SystemBundle;
 import org.apache.nifi.nar.ExtensionManager;
@@ -410,7 +412,7 @@ public class MiNiFi {
 
             if (operationIfaces != null && !operationIfaces.isEmpty()) {
                 if (operationIfaces.size() > 1) {
-                    logger.warn("Had multiple interfaces.  Generated information may be incorrect.");
+                    logger.debug("Instance has multiple interfaces.  Generated information may be non-deterministic.");
                 }
 
                 NetworkInterface iface = operationIfaces.iterator().next();
@@ -445,13 +447,18 @@ public class MiNiFi {
     AgentInfo generateAgentInfo() {
         final AgentInfo agentInfo = new AgentInfo();
 
+        final Properties bootstrapProperties = getBootstrapProperties();
         // Populate AgentInfo
-        agentInfo.setAgentClass(getBootstrapProperties().get("nifi.c2.agent.class").toString()); // TODO make use of c2properties
-        agentInfo.setIdentifier(getBootstrapProperties().get("nifi.c2.agent.identifier").toString());
+        agentInfo.setAgentClass(bootstrapProperties.get("nifi.c2.agent.class").toString()); // TODO make use of c2properties
+        final Object rawAgentIdentifer = bootstrapProperties.get("nifi.c2.agent.identifier");
+        if (rawAgentIdentifer != null && StringUtils.isNotBlank(rawAgentIdentifer.toString())) {
+            agentInfo.setIdentifier(rawAgentIdentifer.toString());
+        } else {
+            final String agentInfoUuid = new UuidGenerator(generateNetworkInfo().getDeviceId()).generate();
+            agentInfo.setIdentifier(agentInfoUuid);
+        }
 
         final AgentStatus agentStatus = new AgentStatus(); // TODO implement
-        agentStatus.setComponents(null);
-        agentStatus.setRepositories(null);
         agentStatus.setUptime(System.currentTimeMillis());
         agentInfo.setStatus(agentStatus);
 
@@ -467,21 +474,16 @@ public class MiNiFi {
         agentManifest.setIdentifier("agent-manifest-id");
         BuildInfo buildInfo = new BuildInfo();
         buildInfo.setCompiler("JDK 8");
-        buildInfo.setCompilerFlags("");
-        buildInfo.setRevision("");
-        buildInfo.setTargetArch("x86_64");
         buildInfo.setTimestamp(new Date().getTime());
-        buildInfo.setVersion("1.8.0 u187");
         agentManifest.setBuildInfo(buildInfo);
         SchedulingDefaults schedulingDefaults = new SchedulingDefaults();
-        schedulingDefaults.setDefaultMaxConcurrentTasks("1");
+        schedulingDefaults.setDefaultMaxConcurrentTasks("10");
         schedulingDefaults.setDefaultRunDurationNanos(0);
         schedulingDefaults.setDefaultSchedulingPeriodMillis(0);
         schedulingDefaults.setDefaultSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
         schedulingDefaults.setPenalizationPeriodMillis(TimeUnit.SECONDS.convert(10, TimeUnit.MILLISECONDS));
         schedulingDefaults.setYieldDurationMillis(TimeUnit.SECONDS.convert(1, TimeUnit.MILLISECONDS));
         agentManifest.setSchedulingDefaults(schedulingDefaults);
-
 
         // Determine Bundles
         final List<com.cloudera.cem.efm.model.extension.Bundle> c2Bundles = new ArrayList<>();
@@ -498,28 +500,7 @@ public class MiNiFi {
             c2Bundles.add(convertedBundle);
         }
 
-        // Determine components for the bundle
-        // Determine manifest processors
-
-
-//        bundleManifest.setProcessors();
-//        bundleManifest.setControllerServices();
-        // bundleManifest.setApis();
-        // bundleManifest.setReportingTasks();  TODO: Currently not supported in DFM
-
-        /** Component Manifest **/
-//
-//
-//
-//        // Populate Controller Services
-//        final Set<Class> controllerService = ExtensionManager.getExtensions(ControllerService.class);
-//        componentManifest.setControllerServices(null);
-//        componentManifest.setApis(new ArrayList<>());
-//        componentManifest.setReportingTasks(new ArrayList<>());
-
         agentManifest.setBundles(c2Bundles);
-//        agentManifest.setComponentManifest(componentManifest);
-
 
         return agentManifest;
     }
@@ -566,7 +547,6 @@ public class MiNiFi {
 
         // Determine Controller Services
         for (Class cls : csExtensions) {
-//                logger.error("Looking up bundle for ControllerService class {}", cls);
             if (!csClassBundles.get(cls).equals(nifiBundle)) {
                 continue;
             }
@@ -596,7 +576,6 @@ public class MiNiFi {
 
                 providedApi.setGroup(apiInterface.getGroup());
                 providedApi.setArtifact(apiInterface.getId());
-//                providedApi.setVersion(apiInterface.getVersion());
                 providedApi.setType(provInterface.getTypeName());
 
                 providedApiImpls.add(providedApi);
@@ -616,7 +595,6 @@ public class MiNiFi {
     }
 
     private List<com.cloudera.cem.efm.model.extension.Relationship> getSupportedRelationships(Class extClass) {
-//        logger.error("GENERATING PROPERTY DESCRIPTORS for {}", extClass.getName());
 
         final List<com.cloudera.cem.efm.model.extension.Relationship> relationships = new ArrayList<>();
 
@@ -636,7 +614,6 @@ public class MiNiFi {
                 final ConfigurableComponent component = ExtensionManager.getTempComponent(classType, coordinate);
 
                 if (component instanceof Processor) {
-//                    logger.error("GETTING RELATIONSHIPS.....");
                     final Processor connectable = (Processor) component;
                     for (Relationship rel : connectable.getRelationships()) {
                         com.cloudera.cem.efm.model.extension.Relationship c2Rel = new com.cloudera.cem.efm.model.extension.Relationship();
@@ -653,8 +630,6 @@ public class MiNiFi {
     }
 
     private String findType(Class extClass) {
-//        logger.error("GENERATING PROPERTY DESCRIPTORS for {}", extClass.getName());
-
         final List<com.cloudera.cem.efm.model.extension.Relationship> relationships = new ArrayList<>();
 
         if (ConfigurableComponent.class.isAssignableFrom(extClass)) {
@@ -827,75 +802,6 @@ public class MiNiFi {
     }
 
     private final static Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
-
-
-//    private Processor instantiateProcessor(final String type, final String identifier, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) throws ProcessorInstantiationException {
-//
-//        Set<Class> processorExtensions = ExtensionManager.getExtensions(Processor.class);
-//        for (final Class<?> extensionClass : processorExtensions) {
-//            if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-//                final String extensionClassName = extensionClass.getCanonicalName();
-//
-//                final org.apache.nifi.bundle.Bundle bundle = ExtensionManager.getBundle(extensionClass.getClassLoader());
-//                if (bundle == null) {
-//                    logger.warn("No coordinate found for {}, skipping...", new Object[]{extensionClassName});
-//                    continue;
-//                }
-//                final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
-//
-//                final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
-//
-//                final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
-//                try {
-//                    logger.error("Documenting: " + componentClass);
-//
-//
-//                    // use temp components from ExtensionManager which should always be populated before doc generation
-//                    final String classType = componentClass.getCanonicalName();
-//                    logger.error("Getting temp component: {}", classType);
-//
-//                    final ConfigurableComponent component = ExtensionManager.getTempComponent(classType, bundleCoordinate);
-//                    logger.error("found component: {}", component);
-//
-//                    final List<org.apache.nifi.components.PropertyDescriptor> properties = component.getPropertyDescriptors();
-//
-//                    for (org.apache.nifi.components.PropertyDescriptor descriptor : properties) {
-//                        logger.error("Found descriptor: {} -> {}", descriptor.getName(), descriptor.getDisplayName());
-//                    }
-//
-//
-//                } catch (Exception e) {
-//                    logger.warn("Unable to document: " + componentClass, e);
-//                }
-//            }
-//        }
-//
-//        final org.apache.nifi.bundle.Bundle processorBundle = ExtensionManager.getBundle(bundleCoordinate);
-//        if (processorBundle == null) {
-//            throw new ProcessorInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
-//        }
-//
-//
-//        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
-//        try {
-//            final ClassLoader detectedClassLoaderForInstance = ExtensionManager.createInstanceClassLoader(type, identifier, processorBundle, additionalUrls);
-//            logger.error("Detected class laoder for instance={}", detectedClassLoaderForInstance == null);
-//            final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForInstance);
-//            logger.error("Raw class {}", rawClass.getName());
-//            Thread.currentThread().setContextClassLoader(detectedClassLoaderForInstance);
-//
-//            final Class<? extends Processor> processorClass = rawClass.asSubclass(Processor.class);
-//            logger.error("processorClass class {}", processorClass.getName());
-//            final Processor processor = processorClass.newInstance();
-//            return processor;
-//        } catch (final Throwable t) {
-//            throw new ProcessorInstantiationException(type, t);
-//        } finally {
-//            if (ctxClassLoader != null) {
-//                Thread.currentThread().setContextClassLoader(ctxClassLoader);
-//            }
-//        }
-//    }
 
     /**
      * Gets the capability description from the specified class.
