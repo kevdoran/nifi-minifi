@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.status.reporters;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,16 +26,6 @@ import java.net.URI;
 public class RestHeartbeatReporterTest {
 
     private static final Logger logger = LoggerFactory.getLogger(RestHeartbeatReporterTest.class);
-
-    @Before
-    public void init() throws Exception {
-
-    }
-
-    @Test
-    public void testHeartbeat() {
-
-    }
 
     @Test
     public void testGetFlowUuid() throws Exception {
@@ -50,5 +39,4 @@ public class RestHeartbeatReporterTest {
         logger.info("Flow Id is {}", flowId);
     }
 
-//
 }

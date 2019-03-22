@@ -34,6 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,6 +47,8 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,7 +113,16 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
         final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
         // Set whether to follow redirects
-        okHttpClientBuilder.followRedirects(false);
+        okHttpClientBuilder.followRedirects(true);
+
+        // check if the ssl path is set and add the factory if so
+        if (StringUtils.isNotBlank(c2Properties.getKeystore())) {
+            try {
+                setSslSocketFactory(okHttpClientBuilder, c2Properties);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
 
         httpClientReference.set(okHttpClientBuilder.build());
         reportRunner = new RestHeartbeatReporter.HeartbeatReporter();
@@ -129,7 +146,6 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
     static {
         HashMap<String, Supplier<Differentiator<ByteBuffer>>> tempMap = new HashMap<>();
         tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator);
-
         DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
     }
 
@@ -285,7 +301,6 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
     }
 
     private class HeartbeatReporter implements Runnable {
-
 
         @Override
         public void run() {
@@ -579,4 +594,84 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
     private String generateHeartbeat() throws IOException {
         return this.agentMonitor.getBundles();
     }
+
+    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, C2Properties properties) throws Exception {
+        final String keystoreLocation = properties.getKeystore();
+        final String keystoreType = properties.getKeystoreType();
+        final String keystorePass = properties.getKeystorePassword();
+
+        assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
+
+        // prepare the keystore
+        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
+
+        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+            keyStore.load(keyStoreStream, keystorePass.toCharArray());
+        }
+
+        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+
+        // load truststore
+        final String truststoreLocation = properties.getTruststore();
+        final String truststorePass = properties.getTruststorePassword();
+        final String truststoreType = properties.getTruststoreType();
+        assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
+
+        KeyStore truststore = KeyStore.getInstance(truststoreType);
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
+        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
+        trustManagerFactory.init(truststore);
+
+        final X509TrustManager x509TrustManager;
+        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+        if (trustManagers[0] != null) {
+            x509TrustManager = (X509TrustManager) trustManagers[0];
+        } else {
+            throw new IllegalStateException("List of trust managers is null");
+        }
+
+        SSLContext tempSslContext;
+        try {
+            tempSslContext = SSLContext.getInstance("TLS");
+        } catch (NoSuchAlgorithmException e) {
+            logger.warn("Unable to use 'TLS' for the PullHttpChangeIngestor due to NoSuchAlgorithmException. Will attempt to use the default algorithm.", e);
+            tempSslContext = SSLContext.getDefault();
+        }
+
+        final SSLContext sslContext = tempSslContext;
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+    }
+
+    private void assertKeystorePropertiesSet(String location, String password, String type) {
+        if (location == null || location.isEmpty()) {
+            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is null or is empty");
+        }
+
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is set but " + KEYSTORE_PASSWORD_KEY + " is not (or is empty). If the location is set, the password must also be.");
+        }
+
+        if (type == null || type.isEmpty()) {
+            throw new IllegalArgumentException(KEYSTORE_LOCATION_KEY + " is set but " + KEYSTORE_TYPE_KEY + " is not (or is empty). If the location is set, the type must also be.");
+        }
+    }
+
+    private void assertTruststorePropertiesSet(String location, String password, String type) {
+        if (location == null || location.isEmpty()) {
+            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is not set or is empty");
+        }
+
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is set but " + TRUSTSTORE_PASSWORD_KEY + " is not (or is empty). If the location is set, the password must also be.");
+        }
+
+        if (type == null || type.isEmpty()) {
+            throw new IllegalArgumentException(TRUSTSTORE_LOCATION_KEY + " is set but " + TRUSTSTORE_TYPE_KEY + " is not (or is empty). If the location is set, the type must also be.");
+        }
+    }
+
 }

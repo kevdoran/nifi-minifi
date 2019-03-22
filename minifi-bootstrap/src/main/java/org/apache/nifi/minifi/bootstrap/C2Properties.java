@@ -33,6 +33,16 @@ public class C2Properties {
     public static final String C2_METRICS_METRICS_PROCESSOR_METRICS_NAME_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.metrics.processorMetrics.name";
     public static final String C2_METRICS_METRICS_PROCESSOR_METRICS_CLASSES_KEY = C2_ROOT_CLASS_DEFINITIONS_KEY + ".metrics.metrics.processorMetrics.classes";
 
+    /* REST Heartbeat Reporter Security Properties */
+    private static final String C2_REST_SECURITY_BASE_KEY = NIFI_PREFIX + "c2.security";
+    public static final String TRUSTSTORE_LOCATION_KEY = C2_REST_SECURITY_BASE_KEY + ".truststore.location";
+    public static final String TRUSTSTORE_PASSWORD_KEY = C2_REST_SECURITY_BASE_KEY + ".truststore.password";
+    public static final String TRUSTSTORE_TYPE_KEY = C2_REST_SECURITY_BASE_KEY + ".truststore.type";
+    public static final String KEYSTORE_LOCATION_KEY = C2_REST_SECURITY_BASE_KEY + ".keystore.location";
+    public static final String KEYSTORE_PASSWORD_KEY = C2_REST_SECURITY_BASE_KEY + ".keystore.password";
+    public static final String KEYSTORE_TYPE_KEY = C2_REST_SECURITY_BASE_KEY + ".keystore.type";
+    public static final String NEED_CLIENT_AUTH_KEY = C2_REST_SECURITY_BASE_KEY + ".need.client.auth";
+
     // Defaults
     // Heartbeat period of 1 second
     public static final long C2_AGENT_DEFAULT_HEARTBEAT_PERIOD = TimeUnit.SECONDS.toMillis(1);
@@ -96,4 +106,28 @@ public class C2Properties {
         return getProperty(C2_REST_URL_ACK_KEY);
     }
 
+    // C2 TLS security properties
+    public String getKeystore() {
+        return getProperty(KEYSTORE_LOCATION_KEY);
+    }
+
+    public String getKeystorePassword() {
+        return getProperty(KEYSTORE_PASSWORD_KEY);
+    }
+
+    public String getKeystoreType() {
+        return getProperty(KEYSTORE_TYPE_KEY);
+    }
+
+    public String getTruststore() {
+        return getProperty(TRUSTSTORE_LOCATION_KEY);
+    }
+
+    public String getTruststorePassword() {
+        return getProperty(TRUSTSTORE_PASSWORD_KEY);
+    }
+
+    public String getTruststoreType() {
+        return getProperty(TRUSTSTORE_TYPE_KEY);
+    }
 }
