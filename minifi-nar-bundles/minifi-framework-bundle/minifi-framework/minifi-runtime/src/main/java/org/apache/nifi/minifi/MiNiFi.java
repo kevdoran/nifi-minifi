@@ -33,7 +33,6 @@ import com.cloudera.cem.efm.model.extension.ProcessorDefinition;
 import com.cloudera.cem.efm.model.extension.PropertyAllowableValue;
 import com.cloudera.cem.efm.model.extension.SchedulingDefaults;
 import com.cloudera.cem.efm.model.extension.SchedulingStrategy;
-import com.google.common.hash.HashCode;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -44,7 +43,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.minifi.c2.agent.client.UuidGenerator;
+import org.apache.nifi.minifi.c2.agent.client.PersistentUuidGenerator;
 import org.apache.nifi.minifi.nar.NarUnpacker;
 import org.apache.nifi.minifi.nar.SystemBundle;
 import org.apache.nifi.nar.ExtensionManager;
@@ -65,9 +64,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.URL;
-import java.net.UnknownHostException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,6 +89,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 // These are from the minifi-nar-utils
@@ -106,6 +104,10 @@ public class MiNiFi {
     private volatile boolean shutdown = false;
 
     private static final AtomicBoolean extensionsLoaded = new AtomicBoolean(false);
+
+    private static final String CONF_DIR_KEY = "conf.dir";
+    private static final String AGENT_IDENTIFIER_FILENAME = "agent-identifier";
+    private final AtomicReference<String> agentIdentifierRef = new AtomicReference<>();
 
 
     public MiNiFi(final NiFiProperties properties)
@@ -449,16 +451,22 @@ public class MiNiFi {
 
         final Properties bootstrapProperties = getBootstrapProperties();
         // Populate AgentInfo
-        agentInfo.setAgentClass(bootstrapProperties.get("nifi.c2.agent.class").toString()); // TODO make use of c2properties
-        final Object rawAgentIdentifer = bootstrapProperties.get("nifi.c2.agent.identifier");
-        if (rawAgentIdentifer != null && StringUtils.isNotBlank(rawAgentIdentifer.toString())) {
-            agentInfo.setIdentifier(rawAgentIdentifer.toString());
-        } else {
-            final String agentInfoUuid = new UuidGenerator(generateNetworkInfo().getDeviceId()).generate();
-            agentInfo.setIdentifier(agentInfoUuid);
+        agentInfo.setAgentClass(bootstrapProperties.getProperty("nifi.c2.agent.class")); // TODO make use of c2properties
+        if (agentIdentifierRef.get() == null) {
+            final String rawAgentIdentifer = bootstrapProperties.getProperty("nifi.c2.agent.identifier");
+            if (StringUtils.isNotBlank(rawAgentIdentifer)) {
+                agentIdentifierRef.set(rawAgentIdentifer.trim());
+            } else {
+                final String confFilename = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
+                final File idFile = new File(confFilename, AGENT_IDENTIFIER_FILENAME);
+                synchronized (this) {
+                    agentIdentifierRef.set(new PersistentUuidGenerator(idFile).generate());
+                }
+            }
         }
+        agentInfo.setIdentifier(agentIdentifierRef.get());
 
-        final AgentStatus agentStatus = new AgentStatus(); // TODO implement
+        final AgentStatus agentStatus = new AgentStatus();
         agentStatus.setUptime(System.currentTimeMillis());
         agentInfo.setStatus(agentStatus);
 

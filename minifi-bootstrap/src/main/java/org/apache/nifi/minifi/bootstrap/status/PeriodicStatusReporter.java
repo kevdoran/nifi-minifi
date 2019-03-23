@@ -50,12 +50,10 @@ public abstract class PeriodicStatusReporter {
      * 'reportRunner' prior to this method being called.
      */
     public void start() {
-        logger.info("Report runner null? = {}, Initialized? = {}", this.reportRunner == null);
         if (reportRunner == null) {
             logger.error("Report runner was null");
             throw new IllegalStateException("Programmatic error, the reportRunner is still NULL when 'start' was called.");
         }
-        logger.info("Starting executor service");
         try {
             scheduledExecutorService.scheduleAtFixedRate(reportRunner, 0, 1000, TimeUnit.MILLISECONDS);
         } catch (Exception e) {

@@ -250,10 +250,12 @@ public class BootstrapListener {
         final ObjectMapper jacksonObjectMapper = new ObjectMapper();
         jacksonObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-        final Payload payload = new Payload(c2Heartbeat);
-        final String heartbeatString = jacksonObjectMapper.writeValueAsString(payload);
-
-        logger.trace("Payload: {}", heartbeatString);
+        String heartbeatString = "";
+        if (c2Heartbeat != null) {
+            final Payload payload = new Payload(c2Heartbeat);
+            heartbeatString = jacksonObjectMapper.writeValueAsString(payload);
+            logger.trace("Payload: {}", heartbeatString);
+        }
         oos.writeObject(heartbeatString);
         oos.close();
     }

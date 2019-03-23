@@ -267,18 +267,6 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
             }
         }
 
-//        // check if the ssl path is set and add the factory if so
-//        if (properties.containsKey(KEYSTORE_LOCATION_KEY)) {
-//            try {
-//                setSslSocketFactory(okHttpClientBuilder, properties);
-//                connectionScheme = "https";
-//            } catch (Exception e) {
-//                throw new IllegalStateException(e);
-//            }
-//        } else {
-//            connectionScheme = "http";
-//        }
-
         ingestorHttpClientReference.set(okHttpClientBuilder.build());
         final String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
 
@@ -311,8 +299,12 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                     String heartbeatString;
                     try {
                         heartbeatString = generateHeartbeat();
+                        if (StringUtils.isBlank(heartbeatString)) {
+                            // If the process is still initializing, and we cannot generate a heartbeat, do not proceed with the execution
+                            return;
+                        }
                     } catch (IOException e) {
-                        logger.info("Instance is current restarting and cannot heartbeat.");
+                        logger.info("Instance is currently restarting and cannot heartbeat.");
                         return;
                     }
 
@@ -466,7 +458,7 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                 }
 
             } catch (Exception e) {
-                logger.error("Could not run the heartbeat reporter runnable for this execution.", e);
+                logger.error("Could not run the heartbeat reporter runnable for this execution.");
             }
         }
     }

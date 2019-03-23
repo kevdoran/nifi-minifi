@@ -1192,7 +1192,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         // Instantiate configuration listener and configured ingestors
         this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
         this.periodicStatusReporters = initializePeriodicNotifiers();
-        defaultLogger.info("Starting period notifiers");
         startPeriodicNotifiers();
         try {
             this.changeCoordinator = initializeNotifier(this.changeListener);
@@ -1333,6 +1332,10 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         final Properties props = loadProperties(logger);
+
+        if (status == null || status.getPort() == null) {
+            throw new IllegalStateException("Failed to get the component manifest from the MiNiFi process. Potentially due to the process currently being down (restarting or otherwise).");
+        }
 
         final int port = status.getPort();
         final String secretKey = props.getProperty("secret.key");

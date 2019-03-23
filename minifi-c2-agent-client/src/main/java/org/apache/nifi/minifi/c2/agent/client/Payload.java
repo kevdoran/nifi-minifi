@@ -14,9 +14,11 @@ public class Payload {
 
     public Payload(C2Heartbeat heartbeat) {
         this.operation = "heartbeat";
-        this.agentInfo = heartbeat.getAgentInfo();
-        this.deviceInfo = heartbeat.getDeviceInfo();
-        this.flowInfo = heartbeat.getFlowInfo();
+        if (heartbeat != null) {
+            this.agentInfo = heartbeat.getAgentInfo();
+            this.deviceInfo = heartbeat.getDeviceInfo();
+            this.flowInfo = heartbeat.getFlowInfo();
+        }
     }
 
     public String getOperation() {
