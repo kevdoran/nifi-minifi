@@ -43,6 +43,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.minifi.c2.agent.client.PersistentUuidGenerator;
 import org.apache.nifi.minifi.nar.NarUnpacker;
 import org.apache.nifi.minifi.nar.SystemBundle;
@@ -341,17 +342,6 @@ public class MiNiFi {
     private FlowInfo generateFlowInfo() {
         // Populate FlowInfo
         final FlowInfo flowInfo = new FlowInfo();
-        flowInfo.setFlowId("flow identifer");
-//        FlowStatus flowStatus = new FlowStatus();
-//        flowStatus.setComponents(null);
-//        flowStatus.setQueues(null);
-//        flowInfo.setStatus(null);
-//        flowInfo.setComponents(null);
-//        flowInfo.setQueues(null);
-//        flowUri.setBucketId("bucket-id");
-//        flowUri.setFlowId("flowuri-bucket-id");
-//        flowUri.setRegistryUrl("https://localhost:18080/nifi-registry");
-//        flowInfo.setVersionedFlowSnapshotURI(flowUri);
         return flowInfo;
     }
 
@@ -698,6 +688,10 @@ public class MiNiFi {
                     c2Prop.setDisplayName(descriptor.getDisplayName());
                     c2Prop.setDynamic(descriptor.isDynamic());
                     c2Prop.setName(descriptor.getName());
+
+                    final ExpressionLanguageScope expressionLanguageScope = descriptor.getExpressionLanguageScope();
+                    final com.cloudera.cem.efm.model.extension.ExpressionLanguageScope elScope = com.cloudera.cem.efm.model.extension.ExpressionLanguageScope.valueOf(expressionLanguageScope.name());
+                    c2Prop.setExpressionLanguageScope(elScope);
 
                     final Class<? extends ControllerService> controllerServiceDefinition = descriptor.getControllerServiceDefinition();
                     if (controllerServiceDefinition != null) {
