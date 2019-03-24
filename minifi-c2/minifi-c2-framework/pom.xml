@@ -50,12 +50,6 @@ limitations under the License.
         <!-- project dependencies -->
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-commons</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-c2-provider-api</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
