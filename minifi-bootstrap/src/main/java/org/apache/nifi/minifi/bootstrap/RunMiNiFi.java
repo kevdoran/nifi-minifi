@@ -173,6 +173,8 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
+    private static final String DEFAULT_HEARTBEAT_REPORTER_CLASS = "org.apache.nifi.minifi.bootstrap.status.reporters.RestHeartbeatReporter";
+
     public RunMiNiFi(final File bootstrapConfigFile) throws IOException {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
@@ -1608,7 +1610,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         final Properties bootstrapProperties = getBootstrapProperties();
         final C2Properties c2Properties = new C2Properties(bootstrapProperties);
 
-        final List<String> periodicNotifiers = new ArrayList<>();
+        final Set<String> periodicNotifiers = new HashSet<>();
         final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
 
         if (reportersCsv != null && !reportersCsv.isEmpty()) {
@@ -1617,7 +1619,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         if (c2Properties.isEnabled()) {
             validateC2Configuration(c2Properties);
-            periodicNotifiers.add("org.apache.nifi.minifi.bootstrap.status.reporters.RestHeartbeatReporter");
+            periodicNotifiers.add(DEFAULT_HEARTBEAT_REPORTER_CLASS);
         } else {
             System.out.println("C2 was not enabled for this instance.");
         }
