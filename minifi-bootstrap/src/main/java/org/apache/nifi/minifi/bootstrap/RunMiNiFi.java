@@ -1194,7 +1194,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         // Instantiate configuration listener and configured ingestors
         this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
         this.periodicStatusReporters = initializePeriodicNotifiers();
-        startPeriodicNotifiers();
         try {
             this.changeCoordinator = initializeNotifier(this.changeListener);
         } catch (Exception e) {
@@ -1213,6 +1212,9 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();
+
+        // Only start the periodic notifiers after MiNiFi has been initialized to avoid any contention over shared resources
+        startPeriodicNotifiers();
 
         try {
             while (true) {

@@ -328,13 +328,11 @@ public class MiNiFi {
         final FlowInfo flowInfo = generateFlowInfo();
 
         heartbeat.setCreated(new Date().getTime());
-        heartbeat.setIdentifier("minifi-java-id");
         // Populate heartbeat
         heartbeat.setAgentInfo(agentInfo);
         heartbeat.setDeviceInfo(deviceInfo);
         heartbeat.setFlowInfo(flowInfo);
         heartbeat.setCreated(new Date().getTime());
-        heartbeat.setIdentifier("IDENTIFIER");
 
         return heartbeat;
     }
