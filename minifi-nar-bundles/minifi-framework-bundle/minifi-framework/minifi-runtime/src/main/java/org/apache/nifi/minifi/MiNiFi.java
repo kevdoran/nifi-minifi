@@ -108,7 +108,9 @@ public class MiNiFi {
 
     private static final String CONF_DIR_KEY = "conf.dir";
     private static final String AGENT_IDENTIFIER_FILENAME = "agent-identifier";
+    private static final String DEVICE_IDENTIFIER_FILENAME = "device-identifier";
     private final AtomicReference<String> agentIdentifierRef = new AtomicReference<>();
+    private final AtomicReference<String> deviceIdentifierRef = new AtomicReference<>();
 
 
     public MiNiFi(final NiFiProperties properties)
@@ -362,21 +364,33 @@ public class MiNiFi {
         return systemInfo;
     }
 
-    static String getDeviceIdentifier(NetworkInfo networkInfo) {
-        try {
-            NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
-            byte[] hardwareAddress = netInterface.getHardwareAddress();
-            final StringBuilder macBuilder = new StringBuilder();
-            if (hardwareAddress != null) {
-                for (int i = 0; i < hardwareAddress.length; i++) {
-                    macBuilder.append(String.format("%02X", hardwareAddress[i]));
+    String getDeviceIdentifier(NetworkInfo networkInfo) {
+
+        if (deviceIdentifierRef.get() == null) {
+            if (networkInfo.getDeviceId() != null) {
+                try {
+                    final NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
+                    byte[] hardwareAddress = netInterface.getHardwareAddress();
+                    final StringBuilder macBuilder = new StringBuilder();
+                    if (hardwareAddress != null) {
+                        for (int i = 0; i < hardwareAddress.length; i++) {
+                            macBuilder.append(String.format("%02X", hardwareAddress[i]));
+                        }
+                    }
+                    deviceIdentifierRef.set(macBuilder.toString());
+                    return deviceIdentifierRef.get();
+                } catch (Exception e) {
+                    logger.warn("Could not determine device identifier.  Generating a unique ID", e);
                 }
             }
-            return macBuilder.toString();
-        } catch (Exception e) {
-            logger.warn("Could not determine device identifier", e);
-            throw new IllegalStateException("Cannot have a device without an identifier");
+            final Properties bootstrapProperties = getBootstrapProperties();
+            final String confFilename = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
+            final File idFile = new File(confFilename, DEVICE_IDENTIFIER_FILENAME);
+            synchronized (this) {
+                deviceIdentifierRef.set(new PersistentUuidGenerator(idFile).generate());
+            }
         }
+        return deviceIdentifierRef.get();
     }
 
     static NetworkInfo generateNetworkInfo() {
