@@ -66,6 +66,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -82,6 +85,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -91,6 +95,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 // These are from the minifi-nar-utils
@@ -112,6 +117,9 @@ public class MiNiFi {
     private final AtomicReference<String> agentIdentifierRef = new AtomicReference<>();
     private final AtomicReference<String> deviceIdentifierRef = new AtomicReference<>();
 
+    private static final String DEFAULT_BUILD_PROPERTIES_FILE = "build.properties";
+
+    private final AtomicReference<String> manfiestHash = new AtomicReference<>();
 
     public MiNiFi(final NiFiProperties properties)
             throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException,
@@ -188,6 +196,8 @@ public class MiNiFi {
 
         extensionsLoaded.set(true);
 
+        calculateManifestId(ExtensionManager.getAllBundles());
+
         // Enrich the flow xml using the Extension Manager mapping
         final FlowParser flowParser = new FlowParser();
         final FlowEnricher flowEnricher = new FlowEnricher(this, flowParser, properties);
@@ -215,6 +225,22 @@ public class MiNiFi {
             // Convert to millis for higher precision and then convert to a float representation of seconds
             final float durationSeconds = TimeUnit.MILLISECONDS.convert(durationNanos, TimeUnit.NANOSECONDS) / 1000f;
             logger.info("Controller initialization took {} nanoseconds ({} seconds).", durationNanos, String.format("%.01f", durationSeconds));
+        }
+    }
+
+    public static String calculateManifestId(final Set<Bundle> loadedBundles) {
+        final List<String> bundleCoordinates = loadedBundles.stream()
+                .map(bundle -> bundle.getBundleDetails().getCoordinate().getCoordinate())
+                .sorted()
+                .collect(Collectors.toList());
+
+        try {
+            final MessageDigest md = MessageDigest.getInstance("SHA-512");
+            byte[] bytes = md.digest(bundleCoordinates.toString().getBytes(StandardCharsets.UTF_8));
+            final String manifestUuid = UUID.nameUUIDFromBytes(bytes).toString();
+            return manifestUuid;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Unable to calculate manifest hash due to not having support for the chosen digest algorithm", e);
         }
     }
 
@@ -383,9 +409,8 @@ public class MiNiFi {
                     logger.warn("Could not determine device identifier.  Generating a unique ID", e);
                 }
             }
-            final Properties bootstrapProperties = getBootstrapProperties();
-            final String confFilename = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
-            final File idFile = new File(confFilename, DEVICE_IDENTIFIER_FILENAME);
+
+            final File idFile = new File(getConfDirectory(), DEVICE_IDENTIFIER_FILENAME);
             synchronized (this) {
                 deviceIdentifierRef.set(new PersistentUuidGenerator(idFile).generate());
             }
@@ -459,8 +484,7 @@ public class MiNiFi {
             if (StringUtils.isNotBlank(rawAgentIdentifer)) {
                 agentIdentifierRef.set(rawAgentIdentifer.trim());
             } else {
-                final String confFilename = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
-                final File idFile = new File(confFilename, AGENT_IDENTIFIER_FILENAME);
+                final File idFile = new File(getConfDirectory(), AGENT_IDENTIFIER_FILENAME);
                 synchronized (this) {
                     agentIdentifierRef.set(new PersistentUuidGenerator(idFile).generate());
                 }
@@ -481,7 +505,7 @@ public class MiNiFi {
         final AgentManifest agentManifest = new AgentManifest();
         agentManifest.setAgentType("minifi-java");
         agentManifest.setVersion("1");
-        agentManifest.setIdentifier("agent-manifest-id");
+        agentManifest.setIdentifier(calculateManifestId(ExtensionManager.getAllBundles()));
         BuildInfo buildInfo = new BuildInfo();
         buildInfo.setCompiler("JDK 8");
         buildInfo.setTimestamp(new Date().getTime());
@@ -795,7 +819,7 @@ public class MiNiFi {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final ClassLoader detectedClassLoaderForInstance = ExtensionManager.createInstanceClassLoader(type, identifier, processorBundle, additionalUrls);
-            logger.error("Detected class laoder for instance={}", detectedClassLoaderForInstance == null);
+            logger.error("Detected class loader for instance={}", detectedClassLoaderForInstance == null);
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForInstance);
             logger.error("Raw class {}", rawClass.getName());
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForInstance);
@@ -853,8 +877,29 @@ public class MiNiFi {
         if (configFilename == null) {
             configFilename = DEFAULT_CONFIG_FILE;
         }
+        return new File(configFilename);
+    }
 
-        final File configFile = new File(configFilename);
-        return configFile;
+    private File getConfDirectory() {
+        final Properties bootstrapProperties = getBootstrapProperties();
+        final String confDirectoryName = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
+        final File confDirectory = new File(confDirectoryName);
+        if (!confDirectory.exists() || !confDirectory.isDirectory()) {
+            throw new IllegalStateException("Specified conf directory " + confDirectoryName + " does not exist or is not a directory.");
+        }
+        return confDirectory;
+    }
+
+    private Manifest getBuildManifest() {
+
+        final File buildPropsFile = new File(getConfDirectory(), DEFAULT_BUILD_PROPERTIES_FILE);
+
+        try (final FileInputStream fis = new FileInputStream(buildPropsFile)) {
+            final Manifest manifest = new Manifest(fis);
+            return manifest;
+        } catch (IOException e) {
+            logger.warn("Could not access build build.properties specified at " + buildPropsFile.getAbsolutePath());
+            return new Manifest();
+        }
     }
 }

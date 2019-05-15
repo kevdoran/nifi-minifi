@@ -52,13 +52,41 @@ limitations under the License.
                         <goals>
                             <goal>create</goal>
                         </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                    <shortRevisionLength>7</shortRevisionLength>
+                    <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+                    <revisionOnScmFailure/>
+                    <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
+                    <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>ant-contrib</groupId>
+                        <artifactId>ant-contrib</artifactId>
+                        <version>20020829</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
                         <configuration>
                             <tasks>
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
                                 <if>
-                                    <available file="${basedir}/target/minifiw.exe" />
+                                    <available file="${basedir}/target/minifiw.exe"/>
                                     <then>
-                                        <echo message="Skipping download of commons-daemon." />
+                                        <echo message="Skipping download of commons-daemon."/>
                                     </then>
                                     <else>
                                         <echo message="Downloading Commons Daemon Windows binaries." />
@@ -68,12 +96,15 @@ limitations under the License.
                                         <checksum file="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
                                         <echo message="Checksum match = ${checksum.matches}" />
                                         <condition property="checksum.matches.fail">
-                                            <equals arg1="${checksum.matches}" arg2="false" />
+                                            <equals arg1="${checksum.matches}" arg2="false"/>
                                         </condition>
                                         <fail if="checksum.matches.fail">Checksum error</fail>
-                                        <unzip src="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}" />
-                                        <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
-                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
+                                        <unzip src="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip"
+                                               dest="${java.io.tmpdir}"/>
+                                        <copy file="${java.io.tmpdir}/prunmgr.exe"
+                                              tofile="${basedir}/target/minifiw.exe"/>
+                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe"
+                                              tofile="${basedir}/target/minifi.exe"/>
                                     </else>
                                 </if>
                             </tasks>
