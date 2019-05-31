@@ -144,8 +144,8 @@
     </dependencySets>
     <files>
         <file>
-            <source>src/main/resources/build.properties</source>
-            <outputDirectory>./conf/</outputDirectory>
+            <source>src/main/resources/build.properties.template</source>
+            <outputDirectory>./</outputDirectory>
             <destName>build.properties</destName>
             <fileMode>0444</fileMode>
             <filtered>true</filtered>
