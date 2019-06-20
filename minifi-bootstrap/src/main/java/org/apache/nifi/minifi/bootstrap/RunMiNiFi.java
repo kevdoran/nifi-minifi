@@ -24,6 +24,9 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListene
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
+import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.util.Tuple;
@@ -67,6 +70,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -133,6 +137,59 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
     public static final String GENERATE_HEARTBEAT_CMD = "GENERATE_HEARTBEAT";
 
     private static final int UNINITIALIZED_CC_PORT = -1;
+
+
+    public static final String SECURITY_KEYSTORE_KEY = "nifi.minifi.security.keystore";
+    public static final String SECURITY_KEYSTORE_TYPE_KEY = "nifi.minifi.security.keystoreType";
+    public static final String SECURITY_KEYSTORE_PASSWORD_KEY = "nifi.minifi.security.keystorePasswd";
+    public static final String SECURITY_KEY_PASSWORD_KEY = "nifi.minifi.security.keyPasswd";
+    public static final String SECURITY_TRUSTSTORE_KEY = "nifi.minifi.security.truststore";
+    public static final String SECURITY_TRUSTSTORE_TYPE_KEY = "nifi.minifi.security.truststoreType";
+    public static final String SECURITY_TRUSTSTORE_PASSWORD_KEY = "nifi.minifi.security.truststorePasswd";
+    public static final String SECURITY_SSL_PROTOCOL_KEY = "nifi.minifi.security.ssl.protocol";
+
+    public static final String SENSITIVE_PROPS_KEY_KEY = "nifi.minifi.sensitive.props.key";
+    public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "nifi.minifi.sensitive.props.algorithm";
+    public static final String SENSITIVE_PROPS_PROVIDER_KEY = "nifi.minifi.sensitive.props.provider";
+
+    public static final Set<String> BOOTSTRAP_SECURITY_PROPERTY_KEYS = new HashSet<>(
+            Arrays.asList(SECURITY_KEYSTORE_KEY,
+                    SECURITY_KEYSTORE_TYPE_KEY,
+                    SECURITY_KEYSTORE_PASSWORD_KEY,
+                    SECURITY_KEY_PASSWORD_KEY,
+                    SECURITY_TRUSTSTORE_KEY,
+                    SECURITY_TRUSTSTORE_TYPE_KEY,
+                    SECURITY_TRUSTSTORE_PASSWORD_KEY,
+                    SECURITY_SSL_PROTOCOL_KEY));
+
+    public static final Set<String> BOOTSTRAP_SENSITIVE_PROPERTY_KEYS = new HashSet<>(
+            Arrays.asList(
+                    SENSITIVE_PROPS_KEY_KEY,
+                    SENSITIVE_PROPS_ALGORITHM_KEY,
+                    SENSITIVE_PROPS_PROVIDER_KEY));
+
+
+    public static final Map<String, String> BOOTSTRAP_KEYS_TO_YML_KEYS;
+
+    static {
+        final Map<String, String> mutableMap = new HashMap<>();
+        mutableMap.put(SECURITY_KEYSTORE_KEY, SecurityPropertiesSchema.KEYSTORE_KEY);
+        mutableMap.put(SECURITY_KEYSTORE_TYPE_KEY, SecurityPropertiesSchema.KEYSTORE_TYPE_KEY);
+        mutableMap.put(SECURITY_KEYSTORE_PASSWORD_KEY, SecurityPropertiesSchema.KEYSTORE_PASSWORD_KEY);
+        mutableMap.put(SECURITY_KEY_PASSWORD_KEY, SecurityPropertiesSchema.KEY_PASSWORD_KEY);
+
+        mutableMap.put(SECURITY_TRUSTSTORE_KEY, SecurityPropertiesSchema.TRUSTSTORE_KEY);
+        mutableMap.put(SECURITY_TRUSTSTORE_TYPE_KEY, SecurityPropertiesSchema.TRUSTSTORE_TYPE_KEY);
+        mutableMap.put(SECURITY_TRUSTSTORE_PASSWORD_KEY, SecurityPropertiesSchema.TRUSTSTORE_PASSWORD_KEY);
+
+        mutableMap.put(SECURITY_SSL_PROTOCOL_KEY, SecurityPropertiesSchema.SSL_PROTOCOL_KEY);
+
+        mutableMap.put(SENSITIVE_PROPS_KEY_KEY, SensitivePropsSchema.SENSITIVE_PROPS_KEY_KEY);
+        mutableMap.put(SENSITIVE_PROPS_ALGORITHM_KEY, SensitivePropsSchema.SENSITIVE_PROPS_ALGORITHM_KEY);
+        mutableMap.put(SENSITIVE_PROPS_PROVIDER_KEY, SensitivePropsSchema.SENSITIVE_PROPS_PROVIDER_KEY);
+
+        BOOTSTRAP_KEYS_TO_YML_KEYS = Collections.unmodifiableMap(mutableMap);
+    }
 
     private volatile boolean autoRestartNiFi = true;
     private volatile int ccPort = UNINITIALIZED_CC_PORT;
@@ -616,7 +673,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         return getFlowStatusReport(statusRequest, status.getPort(), props.getProperty("secret.key"), logger);
     }
-
 
     public void env() {
         final Logger logger = cmdLogger;
@@ -1808,6 +1864,37 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         } catch (Exception e) {
             throw new IOException("Unable to successfully transform the provided configuration", e);
         }
+    }
+
+    public static Optional<SecurityPropertiesSchema> buildSecurityPropertiesFromBootstrap(final Properties bootstrapProperties) {
+
+        Optional<SecurityPropertiesSchema> securityPropsOptional = Optional.empty();
+
+        final Map<String, Object> securityProperties = new HashMap<>();
+
+        BOOTSTRAP_SECURITY_PROPERTY_KEYS.stream()
+                .filter(key -> StringUtils.isNotBlank(bootstrapProperties.getProperty(key)))
+                .forEach(key ->
+                        securityProperties.put(BOOTSTRAP_KEYS_TO_YML_KEYS.get(key), bootstrapProperties.getProperty(key))
+                );
+
+        if (!securityProperties.isEmpty()) {
+            // Determine if sensitive properties were provided
+            final Map<String, String> sensitiveProperties = new HashMap<>();
+            BOOTSTRAP_SENSITIVE_PROPERTY_KEYS.stream()
+                    .filter(key -> StringUtils.isNotBlank(bootstrapProperties.getProperty(key)))
+                    .forEach(key ->
+                            sensitiveProperties.put(BOOTSTRAP_KEYS_TO_YML_KEYS.get(key), bootstrapProperties.getProperty(key))
+                    );
+            if (!sensitiveProperties.isEmpty()) {
+                securityProperties.put(CommonPropertyKeys.SENSITIVE_PROPS_KEY, sensitiveProperties);
+            }
+
+            final SecurityPropertiesSchema securityPropertiesSchema = new SecurityPropertiesSchema(securityProperties);
+            securityPropsOptional = Optional.of(securityPropertiesSchema);
+        }
+
+        return securityPropsOptional;
     }
 
     private static class Status {
