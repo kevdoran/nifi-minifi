@@ -81,8 +81,8 @@ limitations under the License.
                             <goal>create</goal>
                         </goals>
                         <configuration>
-                            <tasks>
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
+                            <target>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
                                 <if>
                                     <available file="${basedir}/target/minifiw.exe"/>
                                     <then>
@@ -90,24 +90,20 @@ limitations under the License.
                                     </then>
                                     <else>
                                         <echo message="Downloading Commons Daemon Windows binaries." />
-                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-1.1.0-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" skipexisting="true" />
+                                        <get src="https://apache.claz.org/commons/daemon/binaries/windows/commons-daemon-${commons.daemon.version}-bin-windows.zip" dest="${java.io.tmpdir}/commons-daemon-${commons.daemon.version}-bin-windows.zip" skipexisting="true" />
                                         <local name="checksum.matches" />
-                                        <property name="sha256sum" value="b5a211f826dc4c0d90508eb1222fe00d70c04a960a6c06540b13ccc5ca71d377" />
-                                        <checksum file="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip" algorithm="SHA-256" property="${sha256sum}" verifyProperty="checksum.matches" />
+                                        <checksum file="${java.io.tmpdir}/commons-daemon-${commons.daemon.version}-bin-windows.zip" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches" />
                                         <echo message="Checksum match = ${checksum.matches}" />
                                         <condition property="checksum.matches.fail">
                                             <equals arg1="${checksum.matches}" arg2="false"/>
                                         </condition>
                                         <fail if="checksum.matches.fail">Checksum error</fail>
-                                        <unzip src="${java.io.tmpdir}/commons-daemon-1.1.0-bin-windows.zip"
-                                               dest="${java.io.tmpdir}"/>
-                                        <copy file="${java.io.tmpdir}/prunmgr.exe"
-                                              tofile="${basedir}/target/minifiw.exe"/>
-                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe"
-                                              tofile="${basedir}/target/minifi.exe"/>
+                                        <unzip src="${java.io.tmpdir}/commons-daemon-${commons.daemon.version}-bin-windows.zip" dest="${java.io.tmpdir}" />
+                                        <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
+                                        <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
                                     </else>
                                 </if>
-                            </tasks>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
@@ -344,140 +340,5 @@ limitations under the License.
             <scope>compile</scope>
         </dependency>
     </dependencies>
-
-    <properties>
-        <!--Bootstrap Properties -->
-        <minifi.jvm.heap.mb>512</minifi.jvm.heap.mb>
-        <minifi.jvm.permgen.mb>256</minifi.jvm.permgen.mb>
-        <minifi.run.as />
-
-        <!--Commons Daemon Properties-->
-        <commons.daemon.version>1.2.1</commons.daemon.version>
-        <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
-        <commons.daemon.mirror.url>https://repo1.maven.org/maven2/commons-daemon/commons-daemon/${commons.daemon.version}</commons.daemon.mirror.url>
-    </properties>
-
-    <profiles>
-        <profile>
-            <id>windows-service-assembly</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <dependencies>
-                            <dependency>
-                                <groupId>ant-contrib</groupId>
-                                <artifactId>ant-contrib</artifactId>
-                                <version>20020829</version>
-                            </dependency>
-                        </dependencies>
-                        <executions>
-                            <execution>
-                                <id>download-commons-daemon</id>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target>
-                                        <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
-                                        <if>
-                                            <available file="${basedir}/target/minifiw.exe" />
-                                            <then>
-                                                <echo message="Skipping download of commons-daemon." />
-                                            </then>
-                                            <else>
-                                                <echo message="Downloading Commons Daemon Windows binaries." />
-                                                <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
-                                                <get src="${commons.daemon.mirror.url}/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
-                                                <local name="checksum.matches"/>
-                                                <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
-                                                <echo message="Checksum match = ${checksum.matches}"/>
-                                                <condition property="checksum.matches.fail">
-                                                    <equals arg1="${checksum.matches}" arg2="false" />
-                                                </condition>
-                                                <fail if="checksum.matches.fail">Checksum error</fail>
-                                                <unzip src="${java.io.tmpdir}/${commons.daemon.file}" dest="${java.io.tmpdir}" />
-                                                <copy file="${java.io.tmpdir}/prunmgr.exe" tofile="${basedir}/target/minifiw.exe" />
-                                                <copy file="${java.io.tmpdir}/amd64/prunsrv.exe" tofile="${basedir}/target/minifi.exe" />
-                                            </else>
-                                        </if>
-                                    </target>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>minifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <archiverConfig>
-                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                        <directoryMode>0775</directoryMode>
-                                        <fileMode>0664</fileMode>
-                                    </archiverConfig>
-                                    <descriptors>
-                                        <descriptor>src/main/assembly/dependencies-windows-service.xml</descriptor>
-                                    </descriptors>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>minimal-assembly</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <finalName>minifi-${project.version}</finalName>
-                            <attach>false</attach>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <archiverConfig>
-                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                        <directoryMode>0775</directoryMode>
-                                        <fileMode>0664</fileMode>
-                                    </archiverConfig>
-                                    <descriptors>
-                                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
-                                    </descriptors>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>
