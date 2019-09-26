@@ -26,20 +26,17 @@ limitations under the License.
     <packaging>pom</packaging>
     <description>This is the assembly of Apache NiFi - MiNiFi</description>
 
-    <build>
+    <properties>
+        <commons.daemon.version>1.2.1</commons.daemon.version>
+        <commons.daemon.sha512sum>62777d2424361162736b4a9b39b9fb4155760d4d7c4a3489fe1868e0912158ae126ef5f42abbd1bcca1dbf5aa6204d8d0029be7c49f222293d6e1421a5173dd7</commons.daemon.sha512sum>
 
-        <pluginManagement>
-            <plugins>
-                <!--
-                    Override the version of the plugin provided by the Apache parent pom as prior versions lead to an NPE
-                -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.1.1</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
+        <!--Bootstrap Properties -->
+        <minifi.jvm.heap.mb>512</minifi.jvm.heap.mb>
+        <minifi.jvm.permgen.mb>256</minifi.jvm.permgen.mb>
+        <minifi.run.as />
+    </properties>
+
+    <build>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -76,9 +73,10 @@ limitations under the License.
                 </dependencies>
                 <executions>
                     <execution>
-                        <phase>validate</phase>
+                        <id>download-commons-daemon</id>
+                        <phase>prepare-package</phase>
                         <goals>
-                            <goal>create</goal>
+                            <goal>run</goal>
                         </goals>
                         <configuration>
                             <target>
@@ -115,7 +113,29 @@ limitations under the License.
                     <revisionOnScmFailure/>
                     <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
                     <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
+                    <finalName>minifi-${project.version}</finalName>
+                    <attach>false</attach>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>make shared resource</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
