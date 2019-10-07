@@ -30,6 +30,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
@@ -157,5 +158,13 @@ public class MiNiFiServer {
 
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
         return StatusConfigReporter.getStatus(this.flowController, requestString, logger);
+    }
+
+    public ProcessGroupStatus getRootProcessGroupStatus() {
+        return this.flowController.getGroupStatus("root");
+    }
+
+    public FlowController getFlowController() {
+        return this.flowController;
     }
 }

@@ -18,11 +18,14 @@ package org.apache.nifi.minifi;
 
 import com.cloudera.cem.efm.model.AgentInfo;
 import com.cloudera.cem.efm.model.AgentManifest;
+import com.cloudera.cem.efm.model.AgentRepositories;
+import com.cloudera.cem.efm.model.AgentRepositoryStatus;
 import com.cloudera.cem.efm.model.AgentStatus;
 import com.cloudera.cem.efm.model.BuildInfo;
 import com.cloudera.cem.efm.model.C2Heartbeat;
 import com.cloudera.cem.efm.model.DeviceInfo;
 import com.cloudera.cem.efm.model.FlowInfo;
+import com.cloudera.cem.efm.model.FlowQueueStatus;
 import com.cloudera.cem.efm.model.NetworkInfo;
 import com.cloudera.cem.efm.model.SystemInfo;
 import com.cloudera.cem.efm.model.extension.ComponentManifest;
@@ -42,7 +45,11 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.status.ConnectionStatus;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.minifi.c2.agent.client.PersistentUuidGenerator;
 import org.apache.nifi.minifi.nar.NarUnpacker;
@@ -359,6 +366,7 @@ public class MiNiFi {
         // Populate heartbeat
         heartbeat.setAgentInfo(agentInfo);
         heartbeat.setDeviceInfo(deviceInfo);
+        // Update flow information
         heartbeat.setFlowInfo(flowInfo);
         heartbeat.setCreated(new Date().getTime());
 
@@ -368,6 +376,25 @@ public class MiNiFi {
     private FlowInfo generateFlowInfo() {
         // Populate FlowInfo
         final FlowInfo flowInfo = new FlowInfo();
+        final ProcessGroupStatus rootProcessGroupStatus = minifiServer.getRootProcessGroupStatus();
+
+        // Handle populating queues
+        final Collection<ConnectionStatus> connectionStatuses = rootProcessGroupStatus.getConnectionStatus();
+
+        final Map<String, FlowQueueStatus> processGroupStatus = new HashMap<>();
+        for (ConnectionStatus connectionStatus : connectionStatuses) {
+            final FlowQueueStatus flowQueueStatus = new FlowQueueStatus();
+
+            flowQueueStatus.setSize(Long.valueOf(connectionStatus.getQueuedCount()));
+            flowQueueStatus.setSizeMax(Long.valueOf(connectionStatus.getBackPressureObjectThreshold()));
+
+            flowQueueStatus.setDataSize(connectionStatus.getQueuedBytes());
+            flowQueueStatus.setDataSizeMax(connectionStatus.getBackPressureBytesThreshold());
+
+            processGroupStatus.put(connectionStatus.getId(), flowQueueStatus);
+        }
+        flowInfo.setQueues(processGroupStatus);
+
         return flowInfo;
     }
 
@@ -494,6 +521,22 @@ public class MiNiFi {
 
         final AgentStatus agentStatus = new AgentStatus();
         agentStatus.setUptime(System.currentTimeMillis());
+
+        final FlowController flowController = minifiServer.getFlowController();
+        final SystemDiagnostics systemDiagnostics = flowController.getSystemDiagnostics();
+
+
+        // Handle repositories
+        final AgentRepositories repos = new AgentRepositories();
+        final AgentRepositoryStatus flowFileRepoStatus = new AgentRepositoryStatus();
+        flowFileRepoStatus.setSize(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
+        repos.setFlowfile(flowFileRepoStatus);
+
+        final AgentRepositoryStatus provRepoStatus = new AgentRepositoryStatus();
+        provRepoStatus.setSize(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator().next().getValue().getUsedSpace());
+        repos.setProvenance(provRepoStatus);
+        agentStatus.setRepositories(repos);
+
         agentInfo.setStatus(agentStatus);
 
         agentInfo.setAgentManifest(generateAgentManifest());

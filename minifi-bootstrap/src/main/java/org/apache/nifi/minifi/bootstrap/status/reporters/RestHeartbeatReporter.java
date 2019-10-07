@@ -5,7 +5,9 @@ import com.cloudera.cem.efm.model.C2Heartbeat;
 import com.cloudera.cem.efm.model.C2OperationAck;
 import com.cloudera.cem.efm.model.DeviceInfo;
 import com.cloudera.cem.efm.model.FlowInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Credentials;
@@ -85,6 +87,8 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
         final C2Properties c2Properties = new C2Properties(properties);
         this.properties.set(properties);
         objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         this.agentMonitor = queryableStatusAggregator;
         this.configurationChangeNotifier = queryableStatusAggregator.getConfigChangeNotifier();
 
