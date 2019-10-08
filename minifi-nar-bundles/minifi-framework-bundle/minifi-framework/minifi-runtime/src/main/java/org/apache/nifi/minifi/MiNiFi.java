@@ -511,7 +511,7 @@ public class MiNiFi {
         buildInfo.setTimestamp(new Date().getTime());
         agentManifest.setBuildInfo(buildInfo);
         SchedulingDefaults schedulingDefaults = new SchedulingDefaults();
-        schedulingDefaults.setDefaultMaxConcurrentTasks("10");
+        schedulingDefaults.setDefaultMaxConcurrentTasks("1");
         schedulingDefaults.setDefaultRunDurationNanos(0);
         schedulingDefaults.setDefaultSchedulingPeriodMillis(0);
         schedulingDefaults.setDefaultSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
