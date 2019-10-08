@@ -767,6 +767,7 @@ public class MiNiFi {
                     c2Prop.setDisplayName(descriptor.getDisplayName());
                     c2Prop.setDynamic(descriptor.isDynamic());
                     c2Prop.setName(descriptor.getName());
+                    c2Prop.setSensitive(descriptor.isSensitive());
 
                     final ExpressionLanguageScope expressionLanguageScope = descriptor.getExpressionLanguageScope();
                     final com.cloudera.cem.efm.model.extension.ExpressionLanguageScope elScope = com.cloudera.cem.efm.model.extension.ExpressionLanguageScope.valueOf(expressionLanguageScope.name());
