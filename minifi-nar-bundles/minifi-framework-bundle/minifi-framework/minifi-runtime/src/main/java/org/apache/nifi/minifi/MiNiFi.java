@@ -505,7 +505,7 @@ public class MiNiFi {
 
         final Properties bootstrapProperties = getBootstrapProperties();
         // Populate AgentInfo
-        agentInfo.setAgentClass(bootstrapProperties.getProperty("nifi.c2.agent.class")); // TODO make use of c2properties
+        agentInfo.setAgentClass(bootstrapProperties.getProperty("nifi.c2.agent.class"));
         if (agentIdentifierRef.get() == null) {
             final String rawAgentIdentifer = bootstrapProperties.getProperty("nifi.c2.agent.identifier");
             if (StringUtils.isNotBlank(rawAgentIdentifer)) {
