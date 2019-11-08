@@ -117,7 +117,7 @@ limitations under the License.
         <aws.sdk.version>1.11.172</aws.sdk.version>
         <nifi.registry.version>0.3.0</nifi.registry.version>
         <io.swagger.version>1.5.18</io.swagger.version>
-        <com.cloudera.cem.efm.version>1.1.0-SNAPSHOT</com.cloudera.cem.efm.version>
+        <com.cloudera.cem.efm.version>1.2.0.0-SNAPSHOT</com.cloudera.cem.efm.version>
     </properties>
 
     <dependencies>

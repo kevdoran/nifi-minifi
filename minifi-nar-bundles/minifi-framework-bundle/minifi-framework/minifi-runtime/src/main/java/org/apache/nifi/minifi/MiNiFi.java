@@ -49,6 +49,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.minifi.c2.agent.client.PersistentUuidGenerator;
@@ -529,11 +530,15 @@ public class MiNiFi {
         // Handle repositories
         final AgentRepositories repos = new AgentRepositories();
         final AgentRepositoryStatus flowFileRepoStatus = new AgentRepositoryStatus();
-        flowFileRepoStatus.setSize(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
+        final StorageUsage ffRepoStorageUsage = systemDiagnostics.getFlowFileRepositoryStorageUsage();
+        flowFileRepoStatus.setDataSize(ffRepoStorageUsage.getUsedSpace());
+        flowFileRepoStatus.setDataSizeMax(ffRepoStorageUsage.getTotalSpace());
         repos.setFlowfile(flowFileRepoStatus);
 
         final AgentRepositoryStatus provRepoStatus = new AgentRepositoryStatus();
-        provRepoStatus.setSize(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator().next().getValue().getUsedSpace());
+        final StorageUsage provRepoStorageUsage = systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator().next().getValue();
+        provRepoStatus.setDataSize(provRepoStorageUsage.getUsedSpace());
+        provRepoStatus.setDataSizeMax(provRepoStorageUsage.getTotalSpace());
         repos.setProvenance(provRepoStatus);
         agentStatus.setRepositories(repos);
 
