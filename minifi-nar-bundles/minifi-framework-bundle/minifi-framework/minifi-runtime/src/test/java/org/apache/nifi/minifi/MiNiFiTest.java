@@ -1,16 +1,11 @@
 package org.apache.nifi.minifi;
 
-import com.cloudera.cem.efm.model.AgentInfo;
-import com.cloudera.cem.efm.model.AgentStatus;
-import com.cloudera.cem.efm.model.Device;
-import com.cloudera.cem.efm.model.DeviceInfo;
-import com.cloudera.cem.efm.model.NetworkInfo;
+import org.apache.nifi.minifi.c2.model.NetworkInfo;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;

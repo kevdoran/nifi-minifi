@@ -16,26 +16,7 @@
  */
 package org.apache.nifi.minifi;
 
-import com.cloudera.cem.efm.model.AgentInfo;
-import com.cloudera.cem.efm.model.AgentManifest;
-import com.cloudera.cem.efm.model.AgentRepositories;
-import com.cloudera.cem.efm.model.AgentRepositoryStatus;
-import com.cloudera.cem.efm.model.AgentStatus;
-import com.cloudera.cem.efm.model.BuildInfo;
-import com.cloudera.cem.efm.model.C2Heartbeat;
-import com.cloudera.cem.efm.model.DeviceInfo;
-import com.cloudera.cem.efm.model.FlowInfo;
-import com.cloudera.cem.efm.model.FlowQueueStatus;
-import com.cloudera.cem.efm.model.NetworkInfo;
-import com.cloudera.cem.efm.model.SystemInfo;
-import com.cloudera.cem.efm.model.extension.ComponentManifest;
-import com.cloudera.cem.efm.model.extension.ControllerServiceDefinition;
-import com.cloudera.cem.efm.model.extension.DefinedType;
-import com.cloudera.cem.efm.model.extension.InputRequirement;
-import com.cloudera.cem.efm.model.extension.ProcessorDefinition;
-import com.cloudera.cem.efm.model.extension.PropertyAllowableValue;
-import com.cloudera.cem.efm.model.extension.SchedulingDefaults;
-import com.cloudera.cem.efm.model.extension.SchedulingStrategy;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -53,6 +34,26 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.minifi.c2.agent.client.PersistentUuidGenerator;
+import org.apache.nifi.minifi.c2.model.AgentInfo;
+import org.apache.nifi.minifi.c2.model.AgentManifest;
+import org.apache.nifi.minifi.c2.model.AgentRepositories;
+import org.apache.nifi.minifi.c2.model.AgentRepositoryStatus;
+import org.apache.nifi.minifi.c2.model.AgentStatus;
+import org.apache.nifi.minifi.c2.model.BuildInfo;
+import org.apache.nifi.minifi.c2.model.C2Heartbeat;
+import org.apache.nifi.minifi.c2.model.DeviceInfo;
+import org.apache.nifi.minifi.c2.model.FlowInfo;
+import org.apache.nifi.minifi.c2.model.FlowQueueStatus;
+import org.apache.nifi.minifi.c2.model.NetworkInfo;
+import org.apache.nifi.minifi.c2.model.SystemInfo;
+import org.apache.nifi.minifi.c2.model.extension.ComponentManifest;
+import org.apache.nifi.minifi.c2.model.extension.ControllerServiceDefinition;
+import org.apache.nifi.minifi.c2.model.extension.DefinedType;
+import org.apache.nifi.minifi.c2.model.extension.InputRequirement;
+import org.apache.nifi.minifi.c2.model.extension.ProcessorDefinition;
+import org.apache.nifi.minifi.c2.model.extension.PropertyAllowableValue;
+import org.apache.nifi.minifi.c2.model.extension.SchedulingDefaults;
+import org.apache.nifi.minifi.c2.model.extension.SchedulingStrategy;
 import org.apache.nifi.minifi.nar.NarUnpacker;
 import org.apache.nifi.minifi.nar.SystemBundle;
 import org.apache.nifi.nar.ExtensionManager;
@@ -568,11 +569,11 @@ public class MiNiFi {
         agentManifest.setSchedulingDefaults(schedulingDefaults);
 
         // Determine Bundles
-        final List<com.cloudera.cem.efm.model.extension.Bundle> c2Bundles = new ArrayList<>();
+        final List<org.apache.nifi.minifi.c2.model.extension.Bundle> c2Bundles = new ArrayList<>();
         for (Bundle nifiBundle : ExtensionManager.getAllBundles()) {
             final BundleCoordinate bundleCoordinate = nifiBundle.getBundleDetails().getCoordinate();
 
-            com.cloudera.cem.efm.model.extension.Bundle convertedBundle = new com.cloudera.cem.efm.model.extension.Bundle();
+            org.apache.nifi.minifi.c2.model.extension.Bundle convertedBundle = new org.apache.nifi.minifi.c2.model.extension.Bundle();
 
             convertedBundle.setArtifact(bundleCoordinate.getId());
             convertedBundle.setGroup(bundleCoordinate.getGroup());
@@ -676,9 +677,9 @@ public class MiNiFi {
         return bundleComponentManifest;
     }
 
-    private List<com.cloudera.cem.efm.model.extension.Relationship> getSupportedRelationships(Class extClass) {
+    private List<org.apache.nifi.minifi.c2.model.extension.Relationship> getSupportedRelationships(Class extClass) {
 
-        final List<com.cloudera.cem.efm.model.extension.Relationship> relationships = new ArrayList<>();
+        final List<org.apache.nifi.minifi.c2.model.extension.Relationship> relationships = new ArrayList<>();
 
         if (ConfigurableComponent.class.isAssignableFrom(extClass)) {
             final String extensionClassName = extClass.getCanonicalName();
@@ -698,7 +699,7 @@ public class MiNiFi {
                 if (component instanceof Processor) {
                     final Processor connectable = (Processor) component;
                     for (Relationship rel : connectable.getRelationships()) {
-                        com.cloudera.cem.efm.model.extension.Relationship c2Rel = new com.cloudera.cem.efm.model.extension.Relationship();
+                        org.apache.nifi.minifi.c2.model.extension.Relationship c2Rel = new org.apache.nifi.minifi.c2.model.extension.Relationship();
                         c2Rel.setName(rel.getName());
                         c2Rel.setDescription(rel.getDescription());
                         relationships.add(c2Rel);
@@ -712,7 +713,7 @@ public class MiNiFi {
     }
 
     private String findType(Class extClass) {
-        final List<com.cloudera.cem.efm.model.extension.Relationship> relationships = new ArrayList<>();
+        final List<org.apache.nifi.minifi.c2.model.extension.Relationship> relationships = new ArrayList<>();
 
         if (ConfigurableComponent.class.isAssignableFrom(extClass)) {
             final String extensionClassName = extClass.getCanonicalName();
@@ -740,10 +741,10 @@ public class MiNiFi {
     }
 
 
-    private LinkedHashMap<String, com.cloudera.cem.efm.model.extension.PropertyDescriptor> getPropertyDescriptors
+    private LinkedHashMap<String, org.apache.nifi.minifi.c2.model.extension.PropertyDescriptor> getPropertyDescriptors
             (Class extClass) {
 
-        final LinkedHashMap<String, com.cloudera.cem.efm.model.extension.PropertyDescriptor> c2PropDescriptors = new LinkedHashMap<>();
+        final LinkedHashMap<String, org.apache.nifi.minifi.c2.model.extension.PropertyDescriptor> c2PropDescriptors = new LinkedHashMap<>();
 
 
         if (ConfigurableComponent.class.isAssignableFrom(extClass)) {
@@ -762,7 +763,7 @@ public class MiNiFi {
                 final ConfigurableComponent component = ExtensionManager.getTempComponent(classType, coordinate);
 
                 for (PropertyDescriptor descriptor : component.getPropertyDescriptors()) {
-                    final com.cloudera.cem.efm.model.extension.PropertyDescriptor c2Prop = new com.cloudera.cem.efm.model.extension.PropertyDescriptor();
+                    final org.apache.nifi.minifi.c2.model.extension.PropertyDescriptor c2Prop = new org.apache.nifi.minifi.c2.model.extension.PropertyDescriptor();
                     final List<AllowableValue> allowableValues = descriptor.getAllowableValues();
                     if (allowableValues != null && !allowableValues.isEmpty()) {
                         c2Prop.setAllowableValues(convert(allowableValues));
@@ -775,7 +776,7 @@ public class MiNiFi {
                     c2Prop.setSensitive(descriptor.isSensitive());
 
                     final ExpressionLanguageScope expressionLanguageScope = descriptor.getExpressionLanguageScope();
-                    final com.cloudera.cem.efm.model.extension.ExpressionLanguageScope elScope = com.cloudera.cem.efm.model.extension.ExpressionLanguageScope.valueOf(expressionLanguageScope.name());
+                    final org.apache.nifi.minifi.c2.model.extension.ExpressionLanguageScope elScope = org.apache.nifi.minifi.c2.model.extension.ExpressionLanguageScope.valueOf(expressionLanguageScope.name());
                     c2Prop.setExpressionLanguageScope(elScope);
 
                     final Class<? extends ControllerService> controllerServiceDefinition = descriptor.getControllerServiceDefinition();

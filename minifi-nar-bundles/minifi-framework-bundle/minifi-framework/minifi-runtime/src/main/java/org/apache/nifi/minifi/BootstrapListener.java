@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.minifi;
 
-import com.cloudera.cem.efm.model.C2Heartbeat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.minifi.c2.agent.client.Payload;
+import org.apache.nifi.minifi.c2.model.C2Heartbeat;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusRequestException;
 import org.apache.nifi.stream.io.LimitingInputStream;

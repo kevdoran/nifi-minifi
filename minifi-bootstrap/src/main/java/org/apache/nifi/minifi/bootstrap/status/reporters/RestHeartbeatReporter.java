@@ -1,11 +1,5 @@
 package org.apache.nifi.minifi.bootstrap.status.reporters;
 
-import com.cloudera.cem.efm.model.AgentInfo;
-import com.cloudera.cem.efm.model.C2Heartbeat;
-import com.cloudera.cem.efm.model.C2OperationAck;
-import com.cloudera.cem.efm.model.DeviceInfo;
-import com.cloudera.cem.efm.model.FlowInfo;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,6 +22,11 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.ConfigurableHttpClient;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
+import org.apache.nifi.minifi.c2.model.AgentInfo;
+import org.apache.nifi.minifi.c2.model.C2Heartbeat;
+import org.apache.nifi.minifi.c2.model.C2OperationAck;
+import org.apache.nifi.minifi.c2.model.DeviceInfo;
+import org.apache.nifi.minifi.c2.model.FlowInfo;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;

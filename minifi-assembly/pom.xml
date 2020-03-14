@@ -236,11 +236,6 @@ limitations under the License.
             <version>2.1</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>com.cloudera.cem.efm</groupId>
-            <artifactId>efm-c2-protocol-api</artifactId>
-            <version>${com.cloudera.cem.efm.version}</version>
-        </dependency>
 
         <!-- NiFi Assembly Dependencies-->
         <dependency>

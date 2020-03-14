@@ -28,22 +28,20 @@ limitations under the License.
     <packaging>jar</packaging>
 
     <dependencies>
-        <dependency>
-            <groupId>com.cloudera.cem.efm</groupId>
-            <artifactId>efm-web-client</artifactId>
-            <version>${com.cloudera.cem.efm.version}</version>
-        </dependency>
 
         <dependency>
-            <groupId>com.cloudera.cem.efm</groupId>
-            <artifactId>efm-c2-protocol-api</artifactId>
-            <version>${com.cloudera.cem.efm.version}</version>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
 
         <!-- REST C2 Protocol -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-c2-protocol-api</artifactId>
         </dependency>
 
         <!-- CoAP C2 Protocol -->

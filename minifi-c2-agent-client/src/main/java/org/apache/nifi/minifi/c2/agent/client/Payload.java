@@ -1,9 +1,9 @@
 package org.apache.nifi.minifi.c2.agent.client;
 
-import com.cloudera.cem.efm.model.AgentInfo;
-import com.cloudera.cem.efm.model.C2Heartbeat;
-import com.cloudera.cem.efm.model.DeviceInfo;
-import com.cloudera.cem.efm.model.FlowInfo;
+import org.apache.nifi.minifi.c2.model.AgentInfo;
+import org.apache.nifi.minifi.c2.model.C2Heartbeat;
+import org.apache.nifi.minifi.c2.model.DeviceInfo;
+import org.apache.nifi.minifi.c2.model.FlowInfo;
 
 public class Payload {
 

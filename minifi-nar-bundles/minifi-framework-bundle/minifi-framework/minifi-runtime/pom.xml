@@ -57,11 +57,7 @@ limitations under the License.
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.cloudera.cem.efm</groupId>
-            <artifactId>efm-c2-protocol-api</artifactId>
-            <version>${com.cloudera.cem.efm.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-nar-utils</artifactId>
