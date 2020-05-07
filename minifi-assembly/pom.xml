@@ -272,6 +272,10 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-persistent-provenance-repository</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-c2-protocol-api</artifactId>
+        </dependency>
 
         <!-- Provided in NiFi so must include here too -->
         <dependency>
