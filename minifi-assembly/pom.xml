@@ -37,6 +37,20 @@ limitations under the License.
     </properties>
 
     <build>
+        
+        <pluginManagement>
+            <plugins>
+                <!--
+                    Override the version of the plugin provided by the Apache parent pom as prior versions lead to an NPE
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -105,14 +119,10 @@ limitations under the License.
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                    <shortRevisionLength>7</shortRevisionLength>
-                    <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
-                    <revisionOnScmFailure/>
-                    <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
-                    <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
                     <finalName>minifi-${project.version}</finalName>
                     <attach>false</attach>
                 </configuration>
