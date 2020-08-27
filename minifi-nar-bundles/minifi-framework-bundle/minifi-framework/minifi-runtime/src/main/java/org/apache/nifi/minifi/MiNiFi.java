@@ -86,6 +86,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -537,9 +538,12 @@ public class MiNiFi {
         repos.setFlowfile(flowFileRepoStatus);
 
         final AgentRepositoryStatus provRepoStatus = new AgentRepositoryStatus();
-        final StorageUsage provRepoStorageUsage = systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator().next().getValue();
-        provRepoStatus.setDataSize(provRepoStorageUsage.getUsedSpace());
-        provRepoStatus.setDataSizeMax(provRepoStorageUsage.getTotalSpace());
+        final Iterator<Map.Entry<String,StorageUsage>> provRepoStorageUsages = systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().iterator();
+        if (provRepoStorageUsages.hasNext()) {
+            final StorageUsage provRepoStorageUsage = provRepoStorageUsages.next().getValue();
+            provRepoStatus.setDataSize(provRepoStorageUsage.getUsedSpace());
+            provRepoStatus.setDataSizeMax(provRepoStorageUsage.getTotalSpace());
+        }
         repos.setProvenance(provRepoStatus);
         agentStatus.setRepositories(repos);
 

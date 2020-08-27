@@ -234,6 +234,10 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return nifiPropertiesOverrides;
     }
 
+    public void setNifiPropertiesOverrides(final Map<String, String> nifiPropertiesOverrides) {
+        this.nifiPropertiesOverrides = nifiPropertiesOverrides;
+    }
+
     @Override
     public int getVersion() {
         return CONFIG_VERSION;

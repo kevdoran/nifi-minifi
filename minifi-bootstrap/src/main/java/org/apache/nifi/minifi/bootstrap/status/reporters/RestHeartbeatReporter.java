@@ -411,29 +411,31 @@ public class RestHeartbeatReporter extends HeartbeatReporter implements Configur
                         return;
                     }
 
+                    // Determine in the incoming config.yml will be modified with any local overrides
                     final ByteBuffer bodyByteBuffer = ByteBuffer.wrap(body.bytes());
-                    ByteBuffer readOnlyNewConfig = null;
 
-                    // checking if some parts of the configuration must be preserved
-                    if (overrideSecurity) {
-                        readOnlyNewConfig = bodyByteBuffer.asReadOnlyBuffer();
-                    } else {
+                    // read current and new schema into memory
+                    final File configFile = new File(properties.get().getProperty(RunMiNiFi.MINIFI_CONFIG_FILE_KEY));
+                    final ConfigSchema currentSchema = SchemaLoader.loadConvertableSchemaFromYaml(new FileInputStream(configFile)).convert();
+                    final ConfigSchema newSchema = SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(bodyByteBuffer.duplicate())).convert();
+
+                    // preserve nifi properties overrides
+                    final Map<String, String> nifiPropertiesOverrides = currentSchema.getNifiPropertiesOverrides();
+                    newSchema.setNifiPropertiesOverrides(nifiPropertiesOverrides);
+
+                    // checking if the security part of the configuration must be preserved
+                    if (!overrideSecurity) {
                         logger.debug("Preserving previous security properties...");
 
                         // get the current security properties from the current configuration file
-                        final File configFile = new File(properties.get().getProperty(RunMiNiFi.MINIFI_CONFIG_FILE_KEY));
-                        ConvertableSchema<ConfigSchema> configSchema = SchemaLoader.loadConvertableSchemaFromYaml(new FileInputStream(configFile));
-                        ConfigSchema currentSchema = configSchema.convert();
-                        SecurityPropertiesSchema secProps = currentSchema.getSecurityProperties();
+                        final SecurityPropertiesSchema secProps = currentSchema.getSecurityProperties();
 
                         // override the security properties in the pulled configuration with the previous properties
-                        configSchema = SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(bodyByteBuffer.duplicate()));
-                        ConfigSchema newSchema = configSchema.convert();
                         newSchema.setSecurityProperties(secProps);
-
-                        // return the updated configuration preserving the previous security configuration
-                        readOnlyNewConfig = ByteBuffer.wrap(new Yaml().dump(newSchema.toMap()).getBytes()).asReadOnlyBuffer();
                     }
+
+                    // return the updated configuration preserving the previous security configuration
+                    final ByteBuffer readOnlyNewConfig = ByteBuffer.wrap(new Yaml().dump(newSchema.toMap()).getBytes()).asReadOnlyBuffer();
 
                     if (differentiator.isNew(readOnlyNewConfig)) {
                         logger.debug("New change received, notifying listener");
